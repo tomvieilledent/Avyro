@@ -25,6 +25,9 @@ class UpdateProfileSchema(Schema):
 
 
 class TrainingSchema(Schema):
+    kind = fields.Str(
+        load_default="training", validate=validate.OneOf(["training", "room"])
+    )
     title = fields.Str(required=True, validate=validate.Length(min=1))
     description = fields.Str(load_default=None, allow_none=True)
     location = fields.Str(load_default=None, allow_none=True)

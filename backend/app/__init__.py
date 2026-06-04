@@ -35,6 +35,12 @@ def create_app(config_name=None):
     register_cli(app)
     register_error_handlers(app)
 
+    # Dev local : sert aussi le frontend statique (même origine, pas de proxy).
+    # En prod, nginx s'en charge -> ne pas définir SERVE_FRONTEND.
+    frontend_dir = os.getenv("SERVE_FRONTEND")
+    if frontend_dir:
+        register_frontend(app, frontend_dir)
+
     # Scheduler in-process (à n'activer que sur UNE instance backend).
     if os.getenv("RUN_SCHEDULER") == "1":
         from .services.maintenance import start_scheduler
@@ -42,6 +48,22 @@ def create_app(config_name=None):
         start_scheduler(app)
 
     return app
+
+
+def register_frontend(app, frontend_dir):
+    from flask import send_from_directory, abort
+
+    @app.route("/")
+    def _index():
+        return send_from_directory(frontend_dir, "index.html")
+
+    @app.route("/<path:path>")
+    def _static(path):
+        if path.startswith("api/"):
+            abort(404)
+        if os.path.isfile(os.path.join(frontend_dir, path)):
+            return send_from_directory(frontend_dir, path)
+        abort(404)
 
 
 def register_cli(app):

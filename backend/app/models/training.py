@@ -6,6 +6,8 @@ class Training(TimestampMixin, db.Model):
     __tablename__ = "trainings"
 
     id = db.Column(db.Integer, primary_key=True)
+    # "training" (Avyro bleu) | "room" (Avyro vert : salles de réunion)
+    kind = db.Column(db.String(20), nullable=False, default="training", index=True)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
     location = db.Column(db.String(255), nullable=True)
@@ -61,6 +63,7 @@ class Training(TimestampMixin, db.Model):
     def to_dict(self):
         return {
             "id": self.id,
+            "kind": self.kind,
             "title": self.title,
             "description": self.description,
             "location": self.location,

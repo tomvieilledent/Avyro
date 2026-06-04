@@ -7,11 +7,7 @@ until python -c "import psycopg2, os; psycopg2.connect(os.environ['DATABASE_URL'
 done
 echo "Database ready."
 
-# Initialise les migrations au premier démarrage, sinon applique les migrations.
-if [ ! -d "migrations/versions" ]; then
-  flask db init
-  flask db migrate -m "init"
-fi
-flask db upgrade
+# Crée les tables si elles n'existent pas (idempotent, fiable).
+python -c "import app.models; from app import create_app; from app.extensions import db; a=create_app(); c=a.app_context(); c.push(); db.create_all(); print('Tables prêtes')"
 
 exec "$@"

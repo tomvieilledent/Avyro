@@ -15,8 +15,9 @@ bp = Blueprint("trainings", __name__)
 def list_reports():
     """Compte rendu LIVE des inscrits, pour chaque formation proposée."""
     user = current_user()
+    kind = request.args.get("kind", "training")
     trainings = (
-        Training.query.filter_by(provider_id=user.company_id)
+        Training.query.filter_by(provider_id=user.company_id, kind=kind)
         .order_by(Training.starts_at.asc())
         .all()
     )
@@ -37,11 +38,13 @@ def list_reports():
 @bp.get("")
 @jwt_required()
 def list_trainings():
-    query = Training.query.filter(Training.status == "open")
+    kind = request.args.get("kind", "training")
 
     if request.args.get("mine") == "true":
         user = current_user()
-        query = Training.query.filter_by(provider_id=user.company_id)
+        query = Training.query.filter_by(provider_id=user.company_id, kind=kind)
+    else:
+        query = Training.query.filter_by(status="open", kind=kind)
 
     if search := request.args.get("q"):
         query = query.filter(Training.title.ilike(f"%{search}%"))

@@ -19,3 +19,14 @@
     @apply rounded-xl border border-gray-200 bg-white p-5 shadow-sm;
   }
 }
+
+/* Accent vert quand on est en mode « salles de réunion » (Avyro vert). */
+.mode-room .btn-primary {
+  @apply bg-green-600 text-white hover:bg-green-700;
+}
+.mode-room .tab.text-avyro-600 {
+  @apply text-green-600;
+}
+.mode-room #who {
+  @apply text-green-600;
+}

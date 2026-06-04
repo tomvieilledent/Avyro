@@ -15,8 +15,10 @@ bp = Blueprint("bookings", __name__)
 def list_bookings():
     """Réservations de la société de l'utilisateur (en tant que demandeur)."""
     user = current_user()
+    kind = request.args.get("kind", "training")
     bookings = (
-        Booking.query.filter_by(company_id=user.company_id)
+        Booking.query.join(Training)
+        .filter(Booking.company_id == user.company_id, Training.kind == kind)
         .order_by(Booking.created_at.desc())
         .all()
     )
@@ -26,11 +28,12 @@ def list_bookings():
 @bp.get("/incoming")
 @jwt_required()
 def incoming_bookings():
-    """Demandes reçues sur les formations dont l'utilisateur est fournisseur."""
+    """Demandes reçues sur les offres dont l'utilisateur est fournisseur."""
     user = current_user()
+    kind = request.args.get("kind", "training")
     bookings = (
         Booking.query.join(Training)
-        .filter(Training.provider_id == user.company_id)
+        .filter(Training.provider_id == user.company_id, Training.kind == kind)
         .order_by(Booking.created_at.desc())
         .all()
     )

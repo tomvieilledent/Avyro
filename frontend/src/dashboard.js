@@ -13,6 +13,54 @@ document.getElementById("logout").addEventListener("click", () => {
 const fmtDate = (s) =>
   new Date(s).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" });
 
+// ---- Mode : Avyro bleu (formations) / Avyro vert (salles de réunion) ----
+const MODES = {
+  training: {
+    kind: "training",
+    desc: "Mutualisez vos formations : proposez vos places restantes à d'autres structures.",
+    tabs: {
+      catalog: "Catalogue",
+      mine: "Mes formations",
+      bookings: "Mes réservations",
+      incoming: "Demandes reçues",
+      reports: "Comptes rendus",
+    },
+    catalogEmpty: "Aucune formation disponible.",
+    mineEmpty: "Aucune formation publiée.",
+    newBtn: "+ Nouvelle formation",
+    modalNew: "Nouvelle formation",
+    modalEdit: "Modifier la formation",
+    titlePlaceholder: "Titre",
+    seatsLabel: "Places proposées",
+    bookPrompt: (max) => `Combien de places ? (max ${max})`,
+    deleteConfirm: (t) => `Supprimer la formation « ${t.title} » ?`,
+  },
+  room: {
+    kind: "room",
+    desc: "Mutualisez vos salles de réunion : proposez vos salles à des entreprises externes.",
+    tabs: {
+      catalog: "Salles dispo",
+      mine: "Mes salles",
+      bookings: "Mes réservations",
+      incoming: "Demandes reçues",
+      reports: "Occupants",
+    },
+    catalogEmpty: "Aucune salle disponible.",
+    mineEmpty: "Aucune salle publiée.",
+    newBtn: "+ Nouvelle salle",
+    modalNew: "Nouvelle salle de réunion",
+    modalEdit: "Modifier la salle",
+    titlePlaceholder: "Nom de la salle",
+    seatsLabel: "Capacité (places)",
+    bookPrompt: (max) => `Combien de places ? (max ${max})`,
+    deleteConfirm: (t) => `Supprimer la salle « ${t.title} » ?`,
+  },
+};
+const currentMode =
+  localStorage.getItem("avyro_mode") === "room" ? "room" : "training";
+const MODE = MODES[currentMode];
+const kindQS = `kind=${MODE.kind}`;
+
 // ---- Onglets ----
 const tabs = document.querySelectorAll(".tab");
 function activate(name) {
@@ -28,6 +76,30 @@ function activate(name) {
   loaders[name]?.();
 }
 tabs.forEach((t) => t.addEventListener("click", () => activate(t.dataset.tab)));
+
+// ---- Application du mode (libellés, couleurs, switch) ----
+function applyMode() {
+  document.body.classList.toggle("mode-room", currentMode === "room");
+  document.getElementById("mode-desc").textContent = MODE.desc;
+  document.getElementById("new-training").textContent = MODE.newBtn;
+  tabs.forEach((t) => {
+    if (MODE.tabs[t.dataset.tab]) t.textContent = MODE.tabs[t.dataset.tab];
+  });
+
+  const sw = document.getElementById("mode-switch");
+  const knob = document.getElementById("mode-knob");
+  const isRoom = currentMode === "room";
+  sw.classList.toggle("bg-green-600", isRoom);
+  sw.classList.toggle("bg-avyro-600", !isRoom);
+  knob.classList.toggle("translate-x-5", isRoom);
+  knob.classList.toggle("translate-x-0.5", !isRoom);
+  sw.setAttribute("aria-checked", String(isRoom));
+  sw.addEventListener("click", () => {
+    localStorage.setItem("avyro_mode", isRoom ? "training" : "room");
+    location.reload();
+  });
+}
+applyMode();
 
 // Détermine l'état d'une formation selon les dates et les places.
 function trainingState(t) {
@@ -104,7 +176,7 @@ function trainingCard(t, { canBook, owner } = {}) {
 }
 
 async function deleteTraining(t) {
-  if (!confirm(`Supprimer la formation « ${t.title} » ?`)) return;
+  if (!confirm(MODE.deleteConfirm(t))) return;
   try {
     await Avyro.api(`/trainings/${t.id}`, { method: "DELETE" });
     loaders.mine();
@@ -114,7 +186,7 @@ async function deleteTraining(t) {
 }
 
 async function book(t) {
-  const seats = parseInt(prompt(`Combien de places ? (max ${t.available_seats})`, "1"), 10);
+  const seats = parseInt(prompt(MODE.bookPrompt(t.available_seats), "1"), 10);
   if (!seats) return;
   try {
     await Avyro.api("/bookings", {
@@ -132,7 +204,9 @@ async function book(t) {
 const loaders = {
   async catalog() {
     const q = document.getElementById("search").value;
-    const list = await Avyro.api(`/trainings${q ? `?q=${encodeURIComponent(q)}` : ""}`);
+    const list = await Avyro.api(
+      `/trainings?${kindQS}${q ? `&q=${encodeURIComponent(q)}` : ""}`
+    );
     const c = document.getElementById("catalog-list");
     c.innerHTML = "";
     list
@@ -142,11 +216,11 @@ const loaders = {
         if (card) c.appendChild(card);
       });
     if (!c.children.length)
-      c.innerHTML = '<p class="text-sm text-gray-500">Aucune formation disponible.</p>';
+      c.innerHTML = `<p class="text-sm text-gray-500">${MODE.catalogEmpty}</p>`;
   },
 
   async mine() {
-    const list = await Avyro.api("/trainings?mine=true");
+    const list = await Avyro.api(`/trainings?mine=true&${kindQS}`);
     const c = document.getElementById("mine-list");
     c.innerHTML = "";
     list.forEach((t) => {
@@ -154,11 +228,11 @@ const loaders = {
       if (card) c.appendChild(card);
     });
     if (!c.children.length)
-      c.innerHTML = '<p class="text-sm text-gray-500">Aucune formation publiée.</p>';
+      c.innerHTML = `<p class="text-sm text-gray-500">${MODE.mineEmpty}</p>`;
   },
 
   async bookings() {
-    const list = await Avyro.api("/bookings");
+    const list = await Avyro.api(`/bookings?${kindQS}`);
     const c = document.getElementById("bookings-list");
     c.innerHTML = "";
     list.forEach((b) => {
@@ -188,7 +262,7 @@ const loaders = {
   },
 
   async incoming() {
-    const list = await Avyro.api("/bookings/incoming");
+    const list = await Avyro.api(`/bookings/incoming?${kindQS}`);
     const c = document.getElementById("incoming-list");
     c.innerHTML = "";
     list.forEach((b) => {
@@ -222,7 +296,7 @@ const loaders = {
   },
 
   async reports() {
-    const list = await Avyro.api("/trainings/reports");
+    const list = await Avyro.api(`/trainings/reports?${kindQS}`);
     const c = document.getElementById("reports-list");
     c.innerHTML = "";
     list.forEach((r) => {
@@ -277,11 +351,13 @@ function openModal(training) {
   const isEdit = training && training.id;
   editingId = isEdit ? training.id : null;
   document.getElementById("modal-title").textContent = isEdit
-    ? "Modifier la formation"
-    : "Nouvelle formation";
+    ? MODE.modalEdit
+    : MODE.modalNew;
   document.getElementById("training-submit").textContent = isEdit
     ? "Enregistrer"
     : "Créer";
+  document.getElementById("f-title").placeholder = MODE.titlePlaceholder;
+  document.getElementById("f-seats-label").firstChild.nodeValue = MODE.seatsLabel;
   document.getElementById("training-error").classList.add("hidden");
   form.reset();
   if (isEdit) {
@@ -308,6 +384,7 @@ form.addEventListener("submit", async (e) => {
   const body = Object.fromEntries(f.entries());
   body.shared_seats = parseInt(body.shared_seats, 10);
   body.price_per_seat = parseFloat(body.price_per_seat || "0");
+  body.kind = MODE.kind;
   try {
     if (editingId) {
       await Avyro.api(`/trainings/${editingId}`, { method: "PATCH", body });
