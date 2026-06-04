@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Flask migrations versions are kept, but local instance is not
+backend/instance/
+backend/dev_outbox.log
+backend/dev.db
+
+# Node / Tailwind
+node_modules/
+frontend/dist/
+
+# Env
+.env
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/

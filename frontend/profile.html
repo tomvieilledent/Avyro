@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mon profil — Avyro</title>
+    <link rel="stylesheet" href="dist/styles.css" />
+  </head>
+  <body class="bg-avyro-50 text-gray-900">
+    <header class="border-b bg-white">
+      <div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
+        <a href="dashboard.html" class="text-xl font-bold text-avyro-700">Avyro</a>
+        <a href="dashboard.html" class="btn-ghost">← Tableau de bord</a>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-3xl space-y-6 px-4 py-8">
+      <h1 class="text-2xl font-bold">Mon profil</h1>
+
+      <!-- Profil utilisateur -->
+      <section class="card">
+        <h2 class="text-lg font-semibold">Compte</h2>
+        <form id="user-form" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label class="text-xs text-gray-500">Prénom
+            <input class="input" name="first_name" required />
+          </label>
+          <label class="text-xs text-gray-500">Nom
+            <input class="input" name="last_name" required />
+          </label>
+          <label class="text-xs text-gray-500 sm:col-span-2">Email
+            <input class="input" name="email" type="email" required />
+          </label>
+          <label class="text-xs text-gray-500 sm:col-span-2">Téléphone
+            <input class="input" name="phone" type="tel" required />
+          </label>
+          <label class="text-xs text-gray-500 sm:col-span-2">Nouveau mot de passe (laisser vide pour ne pas changer)
+            <input class="input" name="password" type="password" minlength="8" placeholder="••••••••" />
+          </label>
+          <p id="user-msg" class="hidden text-sm sm:col-span-2"></p>
+          <div class="sm:col-span-2">
+            <button class="btn-primary" type="submit">Enregistrer</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Société (admin) -->
+      <section class="card" id="company-section">
+        <h2 class="text-lg font-semibold">Ma structure</h2>
+        <form id="company-form" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label class="text-xs text-gray-500 sm:col-span-2">Nom
+            <input class="input" name="name" required />
+          </label>
+          <label class="text-xs text-gray-500">Type
+            <select class="input" name="kind">
+              <option value="pro">Entreprise</option>
+              <option value="private">Particulier</option>
+            </select>
+          </label>
+          <label class="text-xs text-gray-500">SIRET
+            <input class="input" name="siret" />
+          </label>
+          <label class="text-xs text-gray-500 sm:col-span-2">Email de contact
+            <input class="input" name="contact_email" type="email" />
+          </label>
+          <p id="company-msg" class="hidden text-sm sm:col-span-2"></p>
+          <div class="sm:col-span-2">
+            <button class="btn-primary" type="submit">Enregistrer</button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <script src="src/api.js"></script>
+    <script src="src/profile.js"></script>
+  </body>
+</html>

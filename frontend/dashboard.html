@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tableau de bord — Avyro</title>
+    <link rel="stylesheet" href="dist/styles.css" />
+  </head>
+  <body class="bg-avyro-50 text-gray-900">
+    <header class="border-b bg-white">
+      <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+        <span class="text-xl font-bold text-avyro-700">Avyro</span>
+        <div class="flex min-w-0 items-center gap-2 sm:gap-3">
+          <a href="profile.html" id="who" class="hidden max-w-[40vw] truncate text-sm font-medium text-avyro-600 hover:underline sm:inline"></a>
+          <a href="profile.html" class="btn-ghost">Profil</a>
+          <button id="logout" class="btn-ghost">Déconnexion</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-6xl px-4 py-8">
+      <div class="mb-6 flex gap-1 overflow-x-auto border-b text-sm font-medium">
+        <button class="tab whitespace-nowrap px-3 py-2 sm:px-4" data-tab="catalog">Catalogue</button>
+        <button class="tab whitespace-nowrap px-3 py-2 sm:px-4" data-tab="mine">Mes formations</button>
+        <button class="tab whitespace-nowrap px-3 py-2 sm:px-4" data-tab="bookings">Mes réservations</button>
+        <button class="tab whitespace-nowrap px-3 py-2 sm:px-4" data-tab="incoming">Demandes reçues</button>
+        <button class="tab whitespace-nowrap px-3 py-2 sm:px-4" data-tab="reports">Comptes rendus</button>
+      </div>
+
+      <!-- Catalogue -->
+      <section data-panel="catalog">
+        <input id="search" class="input mb-4 max-w-sm" placeholder="Rechercher une formation..." />
+        <div id="catalog-list" class="grid grid-cols-1 gap-4"></div>
+      </section>
+
+      <!-- Mes formations -->
+      <section data-panel="mine" class="hidden">
+        <div class="mb-4 flex justify-end">
+          <button id="new-training" class="btn-primary">+ Nouvelle formation</button>
+        </div>
+        <div id="mine-list" class="grid grid-cols-1 gap-4"></div>
+      </section>
+
+      <!-- Mes réservations -->
+      <section data-panel="bookings" class="hidden">
+        <div id="bookings-list" class="space-y-3"></div>
+      </section>
+
+      <!-- Demandes reçues -->
+      <section data-panel="incoming" class="hidden">
+        <div id="incoming-list" class="space-y-3"></div>
+      </section>
+
+      <!-- Comptes rendus -->
+      <section data-panel="reports" class="hidden">
+        <p class="mb-4 text-sm text-gray-500">
+          Liste des inscrits en direct. Un email de rappel vous est envoyé
+          1 jour ouvré avant le début pour valider et préparer la session.
+        </p>
+        <div id="reports-list" class="grid grid-cols-1 gap-4"></div>
+      </section>
+    </main>
+
+    <!-- Modale création formation -->
+    <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center overflow-y-auto bg-black/40 p-4">
+      <div class="card max-h-[90vh] w-full max-w-lg overflow-y-auto">
+        <h2 id="modal-title" class="text-lg font-semibold">Nouvelle formation</h2>
+        <form id="training-form" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <input class="input sm:col-span-2" name="title" placeholder="Titre" required />
+          <textarea class="input sm:col-span-2" name="description" placeholder="Description"></textarea>
+          <input class="input sm:col-span-2" name="location" placeholder="Lieu" />
+          <input class="input sm:col-span-2" name="contact_phone" type="tel" placeholder="Numéro de contact" required />
+          <label class="text-xs text-gray-500">Début<input class="input" name="starts_at" type="datetime-local" required /></label>
+          <label class="text-xs text-gray-500">Fin<input class="input" name="ends_at" type="datetime-local" required /></label>
+          <label class="text-xs text-gray-500">Places proposées<input class="input" name="shared_seats" type="number" min="1" required /></label>
+          <label class="text-xs text-gray-500">Prix / place (€)<input class="input" name="price_per_seat" type="number" min="0" step="0.01" /></label>
+          <p id="training-error" class="sm:col-span-2 hidden text-sm text-red-600"></p>
+          <div class="sm:col-span-2 mt-2 flex justify-end gap-2">
+            <button type="button" id="modal-cancel" class="btn-ghost">Annuler</button>
+            <button type="submit" id="training-submit" class="btn-primary">Créer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="src/api.js"></script>
+    <script src="src/dashboard.js"></script>
+  </body>
+</html>

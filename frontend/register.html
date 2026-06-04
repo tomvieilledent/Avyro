@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inscription — Avyro</title>
+    <link rel="stylesheet" href="dist/styles.css" />
+  </head>
+  <body class="bg-avyro-50">
+    <main class="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-8">
+      <a href="index.html" class="mb-6 text-center text-2xl font-bold text-avyro-700">Avyro</a>
+      <div class="card">
+        <h1 class="text-xl font-semibold">Créer un compte</h1>
+        <form id="form" class="mt-4 space-y-4">
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <input class="input" name="first_name" placeholder="Prénom" required />
+            <input class="input" name="last_name" placeholder="Nom" required />
+          </div>
+          <input class="input" name="email" type="email" placeholder="Email" required />
+          <input class="input" name="phone" type="tel" placeholder="Numéro de téléphone" required />
+          <input class="input" name="company_name" placeholder="Entreprise (optionnel)" />
+          <input class="input" name="password" type="password" placeholder="Mot de passe (8 car. min)" required />
+          <p id="error" class="hidden text-sm text-red-600"></p>
+          <button class="btn-primary w-full" type="submit">Créer mon compte</button>
+        </form>
+        <p class="mt-4 text-center text-sm text-gray-600">
+          Déjà inscrit ?
+          <a href="login.html" class="font-medium text-avyro-600">Se connecter</a>
+        </p>
+      </div>
+    </main>
+
+    <script src="src/api.js"></script>
+    <script>
+      document.getElementById("form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const f = new FormData(e.target);
+        const err = document.getElementById("error");
+        err.classList.add("hidden");
+        try {
+          const data = await Avyro.api("/auth/register", {
+            method: "POST",
+            body: Object.fromEntries(f.entries()),
+          });
+          Avyro.setSession(data);
+          location.href = "dashboard.html";
+        } catch (ex) {
+          err.textContent =
+            ex.data?.message ||
+            JSON.stringify(ex.data?.messages || {}) ||
+            "Erreur";
+          err.classList.remove("hidden");
+        }
+      });
+    </script>
+  </body>
+</html>
