@@ -37,7 +37,7 @@
       </svg>
       <script>
         (function () {
-          const ANGLE_DEG = 63;
+          const ANGLE_DEG = 62;
           const svg = document.getElementById('hero-svg');
           function update() {
             const W = window.innerWidth;
@@ -58,18 +58,18 @@
       </script>
 
       <!-- Header -->
-      <header class="fixed-top flex flex-col items-center justify-center text-center" style="position:fixed;top:0;left:0;width:100%;height:10vh;">
+      <header class="fixed-top flex flex-col items-center justify-center text-center" style="position:fixed;top:0;left:0;width:100%;height:15vh;">
         <span
           class="text-3xl font-extrabold tracking-tight text-white drop-shadow-lg"
           >Avyro</span
         >
-        <p class="mt-1 text-sm font-medium text-white/90 drop-shadow">
+        <p class="mt-1 text-xs font-medium text-white/90 drop-shadow">
           La plateforme de mutualisation entre entreprises
         </p>
       </header>
 
       <!-- Contenu principal -->
-      <main class="relative z-10 flex flex-col items-center justify-center overflow-hidden" style="position:fixed;top:10vh;left:0;width:100%;height:80vh;">
+      <main class="relative flex flex-col items-center justify-center" style="position:fixed;top:10vh;left:0;width:100%;height:80vh;z-index:20;">
         <!-- Row container : position:relative pour ancrer les descriptions au bas de la photo -->
         <div class="flex flex-row items-center w-full" style="padding: 0 3vw; gap: 3vw; position: relative;">
 
@@ -123,7 +123,7 @@
       <!-- Footer -->
       <footer
         class="fixed-botom flex-col items-center justify-center gap-3 px-6"
-        style="position:fixed;bottom:0;left:0;width:100%;height:10vh;"
+        style="position:fixed;bottom:0;left:0;width:100%;height:10vh;background:transparent;"
       >
         <div class="flex flex-wrap items-center justify-center gap-3">
           <a
