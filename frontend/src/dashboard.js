@@ -100,8 +100,7 @@ function applyMode() {
 
   document.querySelectorAll(".mode-seg").forEach((btn) => {
     const active = btn.dataset.mode === currentMode;
-    const activeText =
-      btn.dataset.mode === "room" ? "text-green-700" : "text-avyro-700";
+    const activeText = "text-avyro-700";
     btn.classList.toggle("bg-white", active);
     btn.classList.toggle(activeText, active);
     btn.classList.toggle("shadow", active);
@@ -127,8 +126,8 @@ const STATE_STYLE = {
     label: "Complète",
   },
   running: {
-    card: "border-green-300 bg-green-50 opacity-90",
-    badge: "bg-green-100 text-green-800",
+    card: "border-blue-200 bg-blue-50 opacity-90",
+    badge: "bg-blue-100 text-blue-800",
     label: "En cours",
   },
 };
@@ -168,10 +167,10 @@ function trainingCard(t, { canBook, owner } = {}) {
       <p class="mt-0.5 truncate text-sm text-gray-500">${t.provider_name}</p>
       <p class="mt-2 line-clamp-2 text-sm text-gray-600">${t.description || ""}</p>
       <dl class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-700">
-        <div>📅 ${fmtDate(t.starts_at)}</div>
-        <div>📍 ${t.is_remote ? "À distance" : t.location || "—"}</div>
-        <div>🎟️ <b>${t.available_seats}</b> places · ${t.price_per_seat} €/place</div>
-        <div>📞 ${t.contact_phone}</div>
+        <div><span class="text-gray-400 font-medium">Date</span> · ${fmtDate(t.starts_at)}</div>
+        <div><span class="text-gray-400 font-medium">Lieu</span> · ${t.is_remote ? "À distance" : t.location || "—"}</div>
+        <div><span class="text-gray-400 font-medium">Places</span> · <b>${t.available_seats}</b> disponibles · ${t.price_per_seat} €/place</div>
+        <div><span class="text-gray-400 font-medium">Contact</span> · ${t.contact_phone}</div>
       </dl>
     </div>
     ${action}`;

@@ -6,84 +6,218 @@
     <title>Tableau de bord — Avyro</title>
     <link id="favicon" rel="icon" href="assets/mark-training.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="dist/styles.css" />
+    <style>
+      html, body { height: 100%; margin: 0; overflow: hidden; }
+
+      /* ── Training (défaut) ─────────────────────────────── */
+      body { background: #e8f0fe; }
+
+      .app-header {
+        position: fixed; top: 0; left: 0; width: 100%; height: 60px;
+        z-index: 30;
+        background: #1e3a8a;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 2rem;
+        box-shadow: 0 2px 8px rgba(15,23,62,0.25);
+      }
+
+      .logo-text { color: #fff; font-size: 1.125rem; font-weight: 700; letter-spacing: -0.02em; }
+      .logo-tagline { color: rgba(255,255,255,0.5); font-size: 0.6875rem; line-height: 1; }
+
+      .mode-pill {
+        background: rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 9999px;
+        padding: 3px;
+        display: flex;
+        gap: 0;
+      }
+      .mode-seg {
+        border-radius: 9999px;
+        padding: 4px 14px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: rgba(255,255,255,0.55);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .mode-seg.bg-white          { background: #fff !important; color: #1d4ed8 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
+      .mode-seg.text-white\/80    { color: rgba(255,255,255,0.55) !important; }
+      .mode-seg.text-avyro-700    { color: #1d4ed8 !important; }
+
+      .hbtn {
+        display: inline-flex; align-items: center;
+        border: 1px solid rgba(255,255,255,0.4);
+        color: #fff;
+        background: transparent;
+        border-radius: 6px;
+        padding: 5px 13px;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.15s;
+        text-decoration: none;
+        line-height: 1.4;
+      }
+      .hbtn:hover { background: rgba(255,255,255,0.12); }
+      #who { color: rgba(255,255,255,0.75); font-size: 0.875rem; text-decoration: none; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #who:hover { color: #fff; }
+
+      .app-main {
+        position: fixed; top: 60px; left: 0;
+        width: 100%; height: calc(100vh - 96px);
+        overflow-y: auto;
+      }
+      .app-content { max-width: 1100px; margin: 0 auto; padding: 1.5rem 2rem; }
+
+      .section-title { font-size: 1rem; font-weight: 700; color: #1e3a8a; margin-bottom: 1.25rem; }
+
+      /* Tab nav */
+      .tab-nav {
+        display: flex;
+        overflow-x: auto;
+        border-bottom: 2px solid #dbeafe;
+        margin-bottom: 1.5rem;
+      }
+      .tab {
+        padding: 9px 16px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #64748b;
+        background: transparent;
+        border: none;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: color 0.15s, border-color 0.15s;
+      }
+      .tab:hover { color: #1d4ed8; }
+      .tab.border-b-2, .tab.text-avyro-600 { color: #1d4ed8; border-bottom-color: #1d4ed8; }
+
+      .app-footer {
+        position: fixed; bottom: 0; left: 0; width: 100%; height: 36px;
+        z-index: 30;
+        background: #1e3a8a;
+        display: flex; align-items: center; justify-content: center; gap: 0;
+        border-top: 1px solid rgba(255,255,255,0.08);
+        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+        font-size: 0.75rem;
+        font-weight: 400;
+        color: rgba(255,255,255,0.55);
+        letter-spacing: 0.01em;
+      }
+      .app-footer p, .app-footer span { margin: 0; font-size: inherit; font-weight: inherit; color: inherit; }
+      .footer-center { flex: 1; text-align: center; }
+      .footer-right { position: absolute; right: 2rem; }
+      body.mode-room .app-footer { background: #fff; border-top: 1px solid #e2e8f0; color: #94a3b8; }
+
+      /* ── Room override ─────────────────────────────────── */
+      body.mode-room { background: #f8fafc; }
+
+      body.mode-room .app-header {
+        background: #fff;
+        border-bottom: 1px solid #e2e8f0;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      }
+      body.mode-room .logo-text   { color: #0f172a; }
+      body.mode-room .logo-tagline { color: #94a3b8; }
+
+      body.mode-room .mode-pill   { background: #f1f5f9; border-color: #e2e8f0; }
+      body.mode-room .mode-seg    { color: #64748b; }
+      body.mode-room .mode-seg.bg-white { color: #1d4ed8 !important; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+      body.mode-room .mode-seg.text-white\/80 { color: #64748b !important; }
+      body.mode-room .mode-seg.text-avyro-700 { color: #1d4ed8 !important; }
+
+      body.mode-room .hbtn { border-color: #e2e8f0; color: #374151; }
+      body.mode-room .hbtn:hover { background: #f3f4f6; }
+      body.mode-room #who { color: #374151; }
+      body.mode-room #who:hover { color: #0f172a; }
+
+      body.mode-room .section-title { color: #1d4ed8; }
+      body.mode-room .tab-nav { border-bottom-color: #e2e8f0; }
+      body.mode-room #mode-desc { color: #1d4ed8; }
+
+      /* Séparateur header */
+      .h-sep { width: 1px; height: 20px; background: rgba(255,255,255,0.2); }
+      body.mode-room .h-sep { background: #e2e8f0; }
+    </style>
   </head>
-  <body class="bg-gradient-to-b from-avyro-50 to-white text-gray-900">
-    <header class="brand-gradient text-white shadow-md">
-      <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <div class="flex items-center gap-2 sm:gap-3">
-          <img id="brand-mark" src="assets/mark-training.svg" alt="" class="h-8 w-8 drop-shadow" />
-          <span id="brand" class="text-lg font-bold sm:text-xl">Avyro</span>
-          <!-- Contrôle segmenté Training / Room -->
-          <div class="flex items-center rounded-full bg-white/20 p-0.5 text-xs font-semibold sm:text-sm">
-            <button
-              type="button"
-              data-mode="training"
-              class="mode-seg rounded-full px-3 py-1 transition-colors"
-            >
-              Training
-            </button>
-            <button
-              type="button"
-              data-mode="room"
-              class="mode-seg rounded-full px-3 py-1 transition-colors"
-            >
-              Room
-            </button>
+  <body class="text-gray-900">
+
+    <!-- ── Header ─────────────────────────────────────────── -->
+    <header class="app-header">
+      <div style="display:flex;align-items:center;gap:1rem;">
+        <div style="display:flex;align-items:center;gap:9px;">
+          <img id="brand-mark" src="assets/mark-training.svg" alt="" style="height:28px;width:28px;" />
+          <div>
+            <div class="logo-text">Avyro</div>
           </div>
         </div>
-        <div class="flex min-w-0 items-center gap-2 sm:gap-3">
-          <a href="profile.html" id="who" class="hidden max-w-[40vw] truncate text-sm font-medium text-white/90 hover:underline sm:inline"></a>
-          <a href="profile.html" class="btn-white">Profil</a>
-          <button id="logout" class="btn-white">Déconnexion</button>
+        <div class="h-sep"></div>
+        <div class="mode-pill">
+          <button type="button" data-mode="training" class="mode-seg">Training</button>
+          <button type="button" data-mode="room" class="mode-seg">Room</button>
         </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <a href="profile.html" id="who" class="hidden sm:inline"></a>
+        <a href="profile.html" class="hbtn">Profil</a>
+        <button id="logout" class="hbtn">Déconnexion</button>
       </div>
     </header>
 
-    <main class="mx-auto max-w-6xl px-4 py-8">
-      <p id="mode-desc" class="mb-4 text-sm text-gray-500"></p>
-      <div class="mb-6 flex gap-1 overflow-x-auto border-b text-sm font-medium">
-        <button class="tab whitespace-nowrap px-3 py-2 sm:px-4" data-tab="catalog">Catalogue</button>
-        <button class="tab whitespace-nowrap px-3 py-2 sm:px-4" data-tab="mine">Mes formations</button>
-        <button class="tab whitespace-nowrap px-3 py-2 sm:px-4" data-tab="bookings">Mes réservations</button>
-        <button class="tab whitespace-nowrap px-3 py-2 sm:px-4" data-tab="incoming">Demandes reçues</button>
-        <button class="tab whitespace-nowrap px-3 py-2 sm:px-4" data-tab="reports">Comptes rendus</button>
-      </div>
+    <!-- ── Main ───────────────────────────────────────────── -->
+    <main class="app-main">
+      <div class="app-content">
 
-      <!-- Catalogue -->
-      <section data-panel="catalog">
-        <input id="search" class="input mb-4 max-w-sm" placeholder="Rechercher une formation..." />
-        <div id="catalog-list" class="grid grid-cols-1 gap-4"></div>
-      </section>
-
-      <!-- Mes formations -->
-      <section data-panel="mine" class="hidden">
-        <div class="mb-4 flex justify-end">
-          <button id="new-training" class="btn-primary">+ Nouvelle formation</button>
+        <!-- Onglets -->
+        <div class="tab-nav">
+          <button class="tab" data-tab="catalog">Catalogue</button>
+          <button class="tab" data-tab="mine">Mes formations</button>
+          <button class="tab" data-tab="bookings">Mes réservations</button>
+          <button class="tab" data-tab="incoming">Demandes reçues</button>
+          <button class="tab" data-tab="reports">Comptes rendus</button>
         </div>
-        <div id="mine-list" class="grid grid-cols-1 gap-4"></div>
-      </section>
 
-      <!-- Mes réservations -->
-      <section data-panel="bookings" class="hidden">
-        <div id="bookings-list" class="space-y-3"></div>
-      </section>
+        <!-- Catalogue -->
+        <section data-panel="catalog">
+          <input id="search" class="input mb-4 max-w-sm" placeholder="Rechercher..." />
+          <div id="catalog-list" class="grid grid-cols-2 gap-4"></div>
+        </section>
 
-      <!-- Demandes reçues -->
-      <section data-panel="incoming" class="hidden">
-        <div id="incoming-list" class="space-y-3"></div>
-      </section>
+        <!-- Mes formations -->
+        <section data-panel="mine" class="hidden">
+          <div class="mb-4 flex justify-end">
+            <button id="new-training" class="btn-primary">+ Nouvelle formation</button>
+          </div>
+          <div id="mine-list" class="grid grid-cols-2 gap-4"></div>
+        </section>
 
-      <!-- Comptes rendus -->
-      <section data-panel="reports" class="hidden">
-        <p class="mb-4 text-sm text-gray-500">
-          Liste des inscrits en direct. Un email de rappel vous est envoyé
-          1 jour ouvré avant le début pour valider et préparer la session.
-        </p>
-        <div id="reports-list" class="grid grid-cols-1 gap-4"></div>
-      </section>
+        <!-- Mes réservations -->
+        <section data-panel="bookings" class="hidden">
+          <div id="bookings-list" class="space-y-3"></div>
+        </section>
+
+        <!-- Demandes reçues -->
+        <section data-panel="incoming" class="hidden">
+          <div id="incoming-list" class="space-y-3"></div>
+        </section>
+
+        <!-- Comptes rendus -->
+        <section data-panel="reports" class="hidden">
+          <p class="mb-4 text-sm text-gray-500">
+            Liste des inscrits confirmés. Un email de rappel est envoyé 1 jour ouvré avant le début.
+          </p>
+          <div id="reports-list" class="grid grid-cols-2 gap-4"></div>
+        </section>
+
+      </div>
     </main>
 
-    <!-- Modale création formation -->
+    <!-- ── Modale ──────────────────────────────────────────── -->
     <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center overflow-y-auto bg-black/40 p-4">
       <div class="card max-h-[90vh] w-full max-w-lg overflow-y-auto">
         <h2 id="modal-title" class="text-lg font-semibold">Nouvelle formation</h2>
@@ -104,6 +238,12 @@
         </form>
       </div>
     </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p id="mode-desc" class="footer-center"></p>
+      <span class="footer-right">© 2026 AVYRO. Tous droits réservés.</span>
+    </footer>
 
     <script src="src/api.js"></script>
     <script src="src/dashboard.js"></script>
