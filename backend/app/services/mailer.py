@@ -1,23 +1,38 @@
-"""Envoi d'emails.
+"""
+Service d'envoi d'emails.
 
-Utilise un serveur SMTP si `MAIL_SERVER` est configuré, sinon écrit les
-messages dans un « outbox » de développement (fichier + log).
+En production : envoie via SMTP (variables MAIL_* dans .env).
+En développement (MAIL_SERVER absent) : écrit les messages dans un fichier
+log local (DEV_OUTBOX) pour inspection sans serveur SMTP.
 """
 import os
 import smtplib
-from datetime import datetime
+from datetime import datetime, timezone
 from email.message import EmailMessage
 
 from flask import current_app
 
-DEV_OUTBOX = os.getenv(
-    "MAIL_DEV_OUTBOX", "/root/Holberton/Avyro/backend/dev_outbox.log"
-)
+# Chemin de l'outbox de développement — relatif au répertoire courant d'exécution
+# ou surchargeable via la variable d'env MAIL_DEV_OUTBOX
+_DEFAULT_OUTBOX = os.path.join(os.path.dirname(__file__), "..", "..", "dev_outbox.log")
+DEV_OUTBOX = os.getenv("MAIL_DEV_OUTBOX", os.path.abspath(_DEFAULT_OUTBOX))
 
 
-def send_email(to, subject, body):
+def send_email(
+    to: "str | list[str]",
+    subject: str,
+    body: str,
+) -> None:
+    """
+    Envoie un email à un ou plusieurs destinataires.
+
+    Args:
+        to: Adresse email ou liste d'adresses.
+        subject: Sujet du message.
+        body: Corps en texte brut.
+    """
     recipients = [to] if isinstance(to, str) else list(to)
-    recipients = [r for r in recipients if r]
+    recipients = [r for r in recipients if r]  # Élimine les None / chaînes vides
     if not recipients:
         return
 
@@ -47,18 +62,30 @@ def send_email(to, subject, body):
         smtp.send_message(msg)
 
 
-def _dev_outbox(sender, recipients, subject, body):
+def _dev_outbox(
+    sender: str,
+    recipients: list[str],
+    subject: str,
+    body: str,
+) -> None:
+    """Enregistre l'email dans un fichier local (mode développement)."""
     entry = (
-        f"\n===== EMAIL {datetime.utcnow().isoformat()} =====\n"
-        f"From: {sender}\nTo: {', '.join(recipients)}\nSubject: {subject}\n\n"
-        f"{body}\n"
+        f"\n{'=' * 60}\n"
+        f"EMAIL — {datetime.now(timezone.utc).replace(tzinfo=None).isoformat()}\n"
+        f"From   : {sender}\n"
+        f"To     : {', '.join(recipients)}\n"
+        f"Subject: {subject}\n"
+        f"\n{body}\n"
     )
     try:
         with open(DEV_OUTBOX, "a", encoding="utf-8") as fh:
             fh.write(entry)
     except OSError:
-        pass
+        pass  # Pas critique si le fichier n'est pas accessible
+
     try:
-        current_app.logger.info("EMAIL (dev outbox) -> %s | %s", recipients, subject)
+        current_app.logger.info(
+            "EMAIL (dev outbox) → %s | %s", recipients, subject
+        )
     except RuntimeError:
-        pass
+        pass  # Hors contexte app (ex. tests directs)

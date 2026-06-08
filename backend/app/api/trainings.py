@@ -1,28 +1,59 @@
-from flask import Blueprint, request, jsonify
+"""
+Routes Training : CRUD formations et salles, rapports d'inscrits.
+Préfixe : /api/trainings
+
+Les formations (kind='training') et les salles (kind='room') partagent
+exactement le même workflow — seul le paramètre `kind` les distingue.
+"""
+from flask.views import MethodView
 from flask_jwt_extended import jwt_required
-from marshmallow import ValidationError
+from flask_smorest import Blueprint, abort
 
 from app.extensions import db
 from app.models import Training
-from app.schemas import TrainingSchema
+from app.schemas import (
+    TrainingCreateSchema,
+    TrainingUpdateSchema,
+    TrainingQuerySchema,
+    TrainingSchema,
+    TrainingReportSchema,
+    MessageSchema,
+)
 from app.utils.auth import current_user
 
-bp = Blueprint("trainings", __name__)
+blp = Blueprint(
+    "trainings",
+    __name__,
+    url_prefix="/api/trainings",
+    description="Gestion des formations (Avyro Training) et salles (Avyro Room).",
+)
 
 
-@bp.get("/reports")
-@jwt_required()
-def list_reports():
-    """Compte rendu LIVE des inscrits, pour chaque formation proposée."""
-    user = current_user()
-    kind = request.args.get("kind", "training")
-    trainings = (
-        Training.query.filter_by(provider_id=user.company_id, kind=kind)
-        .order_by(Training.starts_at.asc())
-        .all()
-    )
-    return jsonify(
-        [
+@blp.route("/reports")
+class TrainingReportsView(MethodView):
+    """
+    Rapports live des inscrits pour chaque formation/salle du provider.
+    Route déclarée avant `/<int:training_id>` pour que Flask ne confonde pas
+    le segment 'reports' avec un entier.
+    """
+
+    decorators = [jwt_required()]
+
+    @blp.arguments(TrainingQuerySchema, location="query")
+    @blp.response(200, TrainingReportSchema(many=True), description="Liste des rapports.")
+    def get(self, args: dict):
+        """
+        Retourne la liste live des inscrits confirmés pour chaque Training
+        proposée par la Company de l'utilisateur connecté.
+        """
+        user = current_user()
+        trainings = (
+            Training.query
+            .filter_by(provider_id=user.company_id, kind=args["kind"])
+            .order_by(Training.starts_at.asc())
+            .all()
+        )
+        return [
             {
                 "training_id": t.id,
                 "training_title": t.title,
@@ -32,79 +63,106 @@ def list_reports():
             }
             for t in trainings
         ]
-    ), 200
 
 
-@bp.get("")
-@jwt_required()
-def list_trainings():
-    kind = request.args.get("kind", "training")
+@blp.route("")
+class TrainingListView(MethodView):
+    """Liste et création de formations/salles."""
 
-    if request.args.get("mine") == "true":
+    decorators = [jwt_required()]
+
+    @blp.arguments(TrainingQuerySchema, location="query")
+    @blp.response(200, TrainingSchema(many=True), description="Liste des formations/salles.")
+    def get(self, args: dict):
+        """
+        Retourne la liste des formations ou salles.
+
+        - Par défaut : catalogue public (status=open) trié par date.
+        - `mine=true` : uniquement celles proposées par la Company de l'utilisateur.
+        - `q=texte` : filtre par titre (insensible à la casse).
+        - `kind=room` : bascule sur les salles de réunion.
+        """
+        kind = args["kind"]
+        query = (
+            Training.query.filter_by(provider_id=current_user().company_id, kind=kind)
+            if args["mine"]
+            else Training.query.filter_by(status="open", kind=kind)
+        )
+
+        if args.get("q"):
+            query = query.filter(Training.title.ilike(f"%{args['q']}%"))
+
+        trainings = query.order_by(Training.starts_at.asc()).all()
+        return [t.to_dict() for t in trainings]
+
+    @blp.arguments(TrainingCreateSchema, location="json")
+    @blp.response(201, TrainingSchema, description="Formation/salle créée.")
+    @blp.alt_response(422, description="Données invalides.")
+    def post(self, args: dict):
+        """
+        Publie une nouvelle formation ou salle de réunion.
+
+        La Company provider est déduite automatiquement du token JWT.
+        """
         user = current_user()
-        query = Training.query.filter_by(provider_id=user.company_id, kind=kind)
-    else:
-        query = Training.query.filter_by(status="open", kind=kind)
-
-    if search := request.args.get("q"):
-        query = query.filter(Training.title.ilike(f"%{search}%"))
-
-    trainings = query.order_by(Training.starts_at.asc()).all()
-    return jsonify([t.to_dict() for t in trainings]), 200
+        training = Training(provider_id=user.company_id, **args)
+        db.session.add(training)
+        db.session.commit()
+        return training.to_dict()
 
 
-@bp.get("/<int:training_id>")
-@jwt_required()
-def get_training(training_id):
-    training = Training.query.get_or_404(training_id)
-    return jsonify(training.to_dict()), 200
+@blp.route("/<int:training_id>")
+class TrainingDetailView(MethodView):
+    """Consultation, modification et suppression d'une formation/salle."""
 
+    decorators = [jwt_required()]
 
-@bp.post("")
-@jwt_required()
-def create_training():
-    try:
-        data = TrainingSchema().load(request.get_json() or {})
-    except ValidationError as err:
-        return jsonify(error="validation", messages=err.messages), 422
+    @blp.response(200, TrainingSchema, description="Détail de la formation/salle.")
+    @blp.alt_response(404, description="Formation/salle introuvable.")
+    def get(self, training_id: int):
+        """Retourne les détails d'une formation ou salle par son id."""
+        training = db.get_or_404(Training, training_id)
+        return training.to_dict()
 
-    user = current_user()
-    # On ne demande que les places proposées ; total_seats les reflète.
-    training = Training(
-        provider_id=user.company_id, total_seats=data["shared_seats"], **data
-    )
-    db.session.add(training)
-    db.session.commit()
-    return jsonify(training.to_dict()), 201
+    @blp.arguments(TrainingUpdateSchema, location="json")
+    @blp.response(200, TrainingSchema, description="Formation/salle mise à jour.")
+    @blp.alt_response(403, description="Vous n'êtes pas le provider de cette formation.")
+    @blp.alt_response(404, description="Formation/salle introuvable.")
+    @blp.alt_response(422, description="Données invalides.")
+    def patch(self, args: dict, training_id: int):
+        """
+        Met à jour une formation ou salle.
 
+        Réservé au provider (Company propriétaire). PATCH sémantique :
+        seuls les champs fournis sont modifiés.
+        """
+        training = db.get_or_404(Training, training_id)
+        user = current_user()
 
-@bp.patch("/<int:training_id>")
-@jwt_required()
-def update_training(training_id):
-    training = Training.query.get_or_404(training_id)
-    user = current_user()
-    if training.provider_id != user.company_id:
-        return jsonify(error="forbidden", message="Not your training"), 403
+        if training.provider_id != user.company_id:
+            abort(403, message="Vous n'êtes pas le provider de cette formation.")
 
-    try:
-        data = TrainingSchema(partial=True).load(request.get_json() or {})
-    except ValidationError as err:
-        return jsonify(error="validation", messages=err.messages), 422
+        for key, value in args.items():
+            setattr(training, key, value)
 
-    for key, value in data.items():
-        setattr(training, key, value)
-    db.session.commit()
-    return jsonify(training.to_dict()), 200
+        db.session.commit()
+        return training.to_dict()
 
+    @blp.response(200, MessageSchema, description="Formation/salle supprimée.")
+    @blp.alt_response(403, description="Vous n'êtes pas le provider de cette formation.")
+    @blp.alt_response(404, description="Formation/salle introuvable.")
+    def delete(self, training_id: int):
+        """
+        Supprime une formation ou salle (cascade sur les bookings associés).
 
-@bp.delete("/<int:training_id>")
-@jwt_required()
-def delete_training(training_id):
-    training = Training.query.get_or_404(training_id)
-    user = current_user()
-    if training.provider_id != user.company_id:
-        return jsonify(error="forbidden", message="Not your training"), 403
+        Réservé au provider.
+        """
+        training = db.get_or_404(Training, training_id)
+        user = current_user()
 
-    db.session.delete(training)
-    db.session.commit()
-    return jsonify(message="deleted"), 200
+        if training.provider_id != user.company_id:
+            abort(403, message="Vous n'êtes pas le provider de cette formation.")
+
+        db.session.delete(training)
+        db.session.commit()
+        return {"message": "Supprimé."}

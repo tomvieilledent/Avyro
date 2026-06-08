@@ -1,3 +1,31 @@
+/**
+ * dashboard.js — Logique principale du tableau de bord (/dashboard.html)
+ *
+ * Le dashboard est bimodal :
+ *   - Mode "training" (Avyro bleu) : gestion des formations mutualisées
+ *   - Mode "room"     (Avyro vert) : gestion des salles de réunion
+ *
+ * Le mode actif est persisté dans localStorage (clé : avyro_mode).
+ *
+ * Cinq onglets :
+ *   1. Catalogue   : formations/salles ouvertes proposées par d'autres Companies
+ *   2. Mes offres  : formations/salles publiées par l'utilisateur (CRUD)
+ *   3. Réservations: demandes effectuées par la Company de l'utilisateur
+ *   4. Demandes    : demandes reçues sur les offres de l'utilisateur
+ *   5. Rapports    : liste live des inscrits confirmés par formation
+ *
+ * API consommée :
+ *   GET  /api/trainings         → catalogue
+ *   GET  /api/trainings?mine=true → mes offres
+ *   POST /api/trainings         → créer
+ *   PATCH/DELETE /api/trainings/<id> → modifier / supprimer
+ *   GET  /api/trainings/reports → rapports
+ *   GET  /api/bookings          → mes réservations
+ *   GET  /api/bookings/incoming → demandes reçues
+ *   POST /api/bookings          → réserver
+ *   PATCH /api/bookings/<id>    → confirmer / refuser
+ *   DELETE /api/bookings/<id>   → se désinscrire
+ */
 Avyro.requireAuth();
 
 const user = Avyro.currentUser();
@@ -10,10 +38,17 @@ document.getElementById("logout").addEventListener("click", () => {
   location.href = "login.html";
 });
 
+/** Formate une date ISO en format français (ex. "1 sept. 2026 à 09:00"). */
 const fmtDate = (s) =>
   new Date(s).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" });
 
-// ---- Mode : Avyro bleu (formations) / Avyro vert (salles de réunion) ----
+// ── Configuration des deux modes ──────────────────────────────────────────────
+
+/**
+ * MODES : libellés et messages spécifiques à chaque mode d'affichage.
+ * Utilisés pour adapter dynamiquement les labels, titres et messages
+ * sans dupliquer la logique HTML/JS.
+ */
 const MODES = {
   training: {
     kind: "training",
@@ -59,10 +94,17 @@ const MODES = {
 const currentMode =
   localStorage.getItem("avyro_mode") === "room" ? "room" : "training";
 const MODE = MODES[currentMode];
+// Paramètre de requête injecté dans toutes les API calls (?kind=training|room)
 const kindQS = `kind=${MODE.kind}`;
 
-// ---- Onglets ----
+// ── Navigation par onglets ────────────────────────────────────────────────────
+
 const tabs = document.querySelectorAll(".tab");
+
+/**
+ * Active un onglet : met à jour les classes CSS et déclenche le loader
+ * associé pour rafraîchir le contenu depuis l'API.
+ */
 function activate(name) {
   tabs.forEach((t) =>
     t.classList.toggle("border-b-2", t.dataset.tab === name)
@@ -77,15 +119,23 @@ function activate(name) {
 }
 tabs.forEach((t) => t.addEventListener("click", () => activate(t.dataset.tab)));
 
-// ---- Bascule de mode avec fondu (transition fluide) ----
+// ── Bascule de mode (training ↔ room) ────────────────────────────────────────
+
+/**
+ * Bascule vers l'autre mode et recharge la page après un fondu sortant.
+ * Le mode est persisté dans localStorage pour survivre au rechargement.
+ */
 function switchMode(target) {
   if (target === currentMode) return;
   localStorage.setItem("avyro_mode", target);
-  document.body.classList.add("page-leave"); // fondu sortant
+  document.body.classList.add("page-leave"); // déclenche le fondu CSS
   setTimeout(() => location.reload(), 180);
 }
 
-// ---- Application du mode (libellés, couleurs, contrôle segmenté) ----
+/**
+ * Applique les libellés, couleurs et états du contrôle segmenté au DOM
+ * en fonction du mode actif.
+ */
 function applyMode() {
   const isRoom = currentMode === "room";
   document.body.classList.toggle("mode-room", isRoom);
@@ -110,15 +160,26 @@ function applyMode() {
 }
 applyMode();
 
-// Détermine l'état d'une formation selon les dates et les places.
+// ── Calcul de l'état d'une Training ──────────────────────────────────────────
+
+/**
+ * Détermine l'état visuel d'une formation à partir de ses données.
+ *
+ * États possibles :
+ *   "ended"   — date de fin dépassée (ne doit plus être affiché)
+ *   "running" — en cours (date de début dépassée mais pas la fin)
+ *   "full"    — complet (0 place disponible)
+ *   "open"    — normal, places disponibles
+ */
 function trainingState(t) {
   const now = new Date();
-  if (now >= new Date(t.ends_at)) return "ended"; // terminée -> supprimée côté serveur
-  if (now >= new Date(t.starts_at)) return "running"; // en cours -> vert
-  if (t.available_seats <= 0) return "full"; // complète -> jaune
+  if (now >= new Date(t.ends_at)) return "ended";
+  if (now >= new Date(t.starts_at)) return "running";
+  if (t.available_seats <= 0) return "full";
   return "open";
 }
 
+/** Styles CSS par état pour les badges et cartes. */
 const STATE_STYLE = {
   full: {
     card: "border-yellow-300 bg-yellow-50 opacity-90",
@@ -132,10 +193,19 @@ const STATE_STYLE = {
   },
 };
 
-// ---- Rendu cellule formation (ligne uniforme : infos à gauche, action à droite) ----
+// ── Rendu d'une carte Formation / Salle ──────────────────────────────────────
+
+/**
+ * Crée et retourne un élément DOM représentant une formation ou une salle.
+ *
+ * @param {object}  t        - Données de la Training (réponse API)
+ * @param {boolean} canBook  - true si l'onglet Catalogue (bouton Réserver visible)
+ * @param {boolean} owner    - true si c'est la propre formation de l'utilisateur
+ * @returns {HTMLElement|null} - null si la formation est terminée (ne pas l'afficher)
+ */
 function trainingCard(t, { canBook, owner } = {}) {
   const state = trainingState(t);
-  if (state === "ended") return null; // ne pas afficher une formation terminée
+  if (state === "ended") return null;
 
   const el = document.createElement("div");
   el.className =
@@ -143,12 +213,14 @@ function trainingCard(t, { canBook, owner } = {}) {
 
   let action;
   if (owner) {
+    // Onglet "Mes offres" : boutons Éditer / Supprimer
     if (state !== "open") el.className += ` ${STATE_STYLE[state].card}`;
     action = `<div class="flex shrink-0 gap-2">
         <button class="btn-ghost" data-edit>Éditer</button>
         <button class="btn-ghost text-red-600" data-delete>Supprimer</button>
       </div>`;
   } else if (state === "open") {
+    // Onglet "Catalogue" : bouton Réserver si places disponibles
     action =
       canBook && t.available_seats > 0
         ? `<div class="shrink-0">
@@ -156,6 +228,7 @@ function trainingCard(t, { canBook, owner } = {}) {
            </div>`
         : `<span class="shrink-0 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600">${t.status}</span>`;
   } else {
+    // Formation complète ou en cours : badge coloré
     const s = STATE_STYLE[state];
     el.className += ` ${s.card}`;
     action = `<span class="shrink-0 rounded-full ${s.badge} px-3 py-1 text-xs font-medium">${s.label}</span>`;
@@ -175,6 +248,7 @@ function trainingCard(t, { canBook, owner } = {}) {
     </div>
     ${action}`;
 
+  // Liaison des handlers sur les boutons d'action
   const bookBtn = el.querySelector("[data-book]");
   if (bookBtn) bookBtn.onclick = () => book(t);
   const editBtn = el.querySelector("[data-edit]");
@@ -184,6 +258,9 @@ function trainingCard(t, { canBook, owner } = {}) {
   return el;
 }
 
+// ── Actions utilisateur ───────────────────────────────────────────────────────
+
+/** Supprime une formation après confirmation. */
 async function deleteTraining(t) {
   if (!confirm(MODE.deleteConfirm(t))) return;
   try {
@@ -194,6 +271,7 @@ async function deleteTraining(t) {
   }
 }
 
+/** Crée une demande de réservation (POST /api/bookings). */
 async function book(t) {
   const seats = parseInt(prompt(MODE.bookPrompt(t.available_seats), "1"), 10);
   if (!seats) return;
@@ -209,8 +287,15 @@ async function book(t) {
   }
 }
 
-// ---- Loaders ----
+// ── Loaders (rechargement des onglets depuis l'API) ───────────────────────────
+
+/**
+ * Chaque loader correspond à un onglet du dashboard.
+ * Appelés par activate() lors du changement d'onglet, ou directement
+ * après une action (création, confirmation, etc.) pour rafraîchir la vue.
+ */
 const loaders = {
+  /** Onglet 1 : Catalogue — formations/salles ouvertes des autres Companies. */
   async catalog() {
     const q = document.getElementById("search").value;
     const list = await Avyro.api(
@@ -218,6 +303,7 @@ const loaders = {
     );
     const c = document.getElementById("catalog-list");
     c.innerHTML = "";
+    // Exclut les formations de la propre Company de l'utilisateur
     list
       .filter((t) => t.provider_id !== user.company_id)
       .forEach((t) => {
@@ -228,6 +314,7 @@ const loaders = {
       c.innerHTML = `<p class="text-sm text-gray-500">${MODE.catalogEmpty}</p>`;
   },
 
+  /** Onglet 2 : Mes offres — formations/salles publiées par l'utilisateur. */
   async mine() {
     const list = await Avyro.api(`/trainings?mine=true&${kindQS}`);
     const c = document.getElementById("mine-list");
@@ -240,6 +327,7 @@ const loaders = {
       c.innerHTML = `<p class="text-sm text-gray-500">${MODE.mineEmpty}</p>`;
   },
 
+  /** Onglet 3 : Mes réservations — demandes de la Company de l'utilisateur. */
   async bookings() {
     const list = await Avyro.api(`/bookings?${kindQS}`);
     const c = document.getElementById("bookings-list");
@@ -247,6 +335,7 @@ const loaders = {
     list.forEach((b) => {
       const el = document.createElement("div");
       el.className = "card flex items-center justify-between gap-3";
+      // Bouton "Se désinscrire" uniquement si la réservation est encore pending
       const action =
         b.status === "pending"
           ? `<button class="btn-ghost shrink-0 text-red-600" data-unsub>Se désinscrire</button>`
@@ -270,6 +359,7 @@ const loaders = {
       c.innerHTML = '<p class="text-sm text-gray-500">Aucune réservation.</p>';
   },
 
+  /** Onglet 4 : Demandes reçues — réservations à confirmer ou refuser. */
   async incoming() {
     const list = await Avyro.api(`/bookings/incoming?${kindQS}`);
     const c = document.getElementById("incoming-list");
@@ -277,6 +367,7 @@ const loaders = {
     list.forEach((b) => {
       const el = document.createElement("div");
       el.className = "card flex items-center justify-between";
+      // Boutons d'action uniquement sur les demandes encore pending
       const actions =
         b.status === "pending"
           ? `<div class="flex gap-2">
@@ -287,6 +378,7 @@ const loaders = {
       el.innerHTML = `<div><b>${b.company_name}</b> · ${b.training_title} — ${b.seats} place(s)</div>${actions}`;
       c.appendChild(el);
     });
+    // Délégation d'événements sur les boutons Confirmer / Refuser
     c.querySelectorAll("button[data-id]").forEach((btn) =>
       btn.addEventListener("click", async () => {
         try {
@@ -304,6 +396,7 @@ const loaders = {
       c.innerHTML = '<p class="text-sm text-gray-500">Aucune demande.</p>';
   },
 
+  /** Onglet 5 : Rapports — liste live des inscrits confirmés par formation. */
   async reports() {
     const list = await Avyro.api(`/trainings/reports?${kindQS}`);
     const c = document.getElementById("reports-list");
@@ -346,16 +439,24 @@ const loaders = {
   },
 };
 
+// ── Recherche dans le catalogue ───────────────────────────────────────────────
+
+/** Debounce de 300 ms sur la saisie dans le champ de recherche. */
 document.getElementById("search").addEventListener("input", () => {
   clearTimeout(window._t);
   window._t = setTimeout(loaders.catalog, 300);
 });
 
-// ---- Modale (création / édition) ----
+// ── Modale de création / édition ──────────────────────────────────────────────
+
 const modal = document.getElementById("modal");
 const form = document.getElementById("training-form");
-let editingId = null;
+let editingId = null; // null = création, number = édition
 
+/**
+ * Ouvre la modale en mode création (training=null) ou édition (training=objet).
+ * Pré-remplit les champs en mode édition.
+ */
 function openModal(training) {
   const isEdit = training && training.id;
   editingId = isEdit ? training.id : null;
@@ -385,6 +486,7 @@ const closeModal = () => modal.classList.replace("flex", "hidden");
 document.getElementById("new-training").addEventListener("click", () => openModal());
 document.getElementById("modal-cancel").addEventListener("click", closeModal);
 
+/** Soumission du formulaire : crée ou met à jour la formation via l'API. */
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const f = new FormData(e.target);
@@ -393,6 +495,7 @@ form.addEventListener("submit", async (e) => {
   const body = Object.fromEntries(f.entries());
   body.shared_seats = parseInt(body.shared_seats, 10);
   body.price_per_seat = parseFloat(body.price_per_seat || "0");
+  // Le mode (training/room) est injecté depuis la config courante
   body.kind = MODE.kind;
   try {
     if (editingId) {
@@ -405,10 +508,14 @@ form.addEventListener("submit", async (e) => {
     editingId = null;
     activate("mine");
   } catch (ex) {
+    // Affiche le message d'erreur dans la modale sans la fermer
     err.textContent =
       ex.data?.message || JSON.stringify(ex.data?.messages || {}) || "Erreur";
     err.classList.remove("hidden");
   }
 });
 
+// ── Initialisation ────────────────────────────────────────────────────────────
+
+/** Charge le catalogue au démarrage (onglet par défaut). */
 activate("catalog");
