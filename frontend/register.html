@@ -6,38 +6,62 @@
     <title>Inscription — Avyro</title>
     <link rel="icon" href="assets/mark-training.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="dist/styles.css" />
+    <style>html, body { height: 100%; overflow: hidden; }</style>
   </head>
   <body>
-    <div class="relative min-h-screen overflow-hidden flex">
+    <div class="relative h-screen overflow-hidden flex">
 
-      <!-- Fond diagonal bleu / blanc -->
-      <svg class="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 1600 900">
+      <!-- Fond diagonal -->
+      <svg id="hero-svg" style="position:fixed;inset:0;width:100vw;height:100vh;z-index:0;">
         <defs>
           <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#1e3a8a"/>
-            <stop offset="100%" stop-color="#1D4ED8"/>
+            <stop offset="0%" stop-color="#1D4ED8" />
+            <stop offset="100%" stop-color="#3B82F6" />
           </linearGradient>
         </defs>
-        <polygon points="0,0 960,0 640,900 0,900" fill="url(#blueGrad)"/>
-        <polygon points="960,0 1600,0 1600,900 640,900" fill="#ffffff"/>
-        <line x1="960" y1="0" x2="640" y2="900" stroke="#e5e7eb" stroke-width="2"/>
+        <polygon id="diag-left" fill="url(#blueGrad)" />
+        <polygon id="diag-right" fill="#f8fafc" />
+        <line id="diag-line" stroke="white" stroke-width="3" stroke-opacity="0.45" vector-effect="non-scaling-stroke" />
       </svg>
+      <script>
+        (function () {
+          const ANGLE_DEG = 63;
+          const svg = document.getElementById('hero-svg');
+          function update() {
+            const W = window.innerWidth;
+            const H = window.innerHeight;
+            svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+            const run = H / Math.tan((ANGLE_DEG * Math.PI) / 180);
+            const xTop = W / 2 + run / 2;
+            const xBot = W / 2 - run / 2;
+            document.getElementById('diag-left').setAttribute('points', '0,0 ' + xTop + ',0 ' + xBot + ',' + H + ' 0,' + H);
+            document.getElementById('diag-right').setAttribute('points', xTop + ',0 ' + W + ',0 ' + W + ',' + H + ' ' + xBot + ',' + H);
+            const line = document.getElementById('diag-line');
+            line.setAttribute('x1', xTop); line.setAttribute('y1', 0);
+            line.setAttribute('x2', xBot); line.setAttribute('y2', H);
+          }
+          window.addEventListener('resize', update);
+          update();
+        })();
+      </script>
 
       <!-- Gauche : branding -->
-      <div class="relative z-10 flex flex-1 flex-col items-start justify-center px-16 py-12">
+      <div class="relative z-10 flex flex-1 flex-col items-center justify-center py-12" style="padding-left: 8vw; padding-right: 4vw;">
         <a href="index.html">
-          <img src="assets/logo-training2.svg" alt="Avyro Training" class="w-52" />
+          <div class="bg-white rounded-2xl shadow-xl p-4" style="width: 220px;">
+            <img src="assets/logo-avyro.svg" alt="Avyro" class="w-full" />
+          </div>
         </a>
-        <p class="mt-6 max-w-xs text-sm" style="color:rgba(255,255,255,0.75)">
+        <p class="mt-6 max-w-xs text-sm text-center" style="color:rgba(255,255,255,0.75)">
           La plateforme de mutualisation<br>entre entreprises
         </p>
       </div>
 
       <!-- Droite : formulaire -->
-      <div class="relative z-10 flex flex-1 items-center justify-center px-12 py-12">
+      <div class="relative z-10 flex flex-1 items-center justify-end" style="height:100vh; padding-right:5vw;">
         <div class="w-full max-w-sm">
-          <h1 class="text-2xl font-bold text-gray-900">Créer un compte</h1>
-          <p class="mt-1 text-sm text-gray-500">Rejoignez Avyro</p>
+          <h1 class="text-2xl font-bold text-gray-900 text-right">Créer un compte</h1>
+          <p class="mt-1 text-sm text-gray-500 text-right">Rejoignez Avyro</p>
           <form id="form" class="mt-6 space-y-4">
             <div class="grid grid-cols-2 gap-3">
               <input class="input" name="first_name" placeholder="Prénom" required />
