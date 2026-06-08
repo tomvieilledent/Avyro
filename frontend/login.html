@@ -7,23 +7,38 @@
     <link rel="icon" href="assets/mark-training.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="dist/styles.css" />
   </head>
-  <body class="bg-gray-900">
-    <div class="relative min-h-screen overflow-hidden">
-      <img
-        src="assets/hero-split.svg"
-        alt=""
-        class="absolute inset-0 h-full w-full object-cover"
-      />
-      <div class="absolute inset-0 bg-black/40"></div>
+  <body>
+    <div class="relative min-h-screen overflow-hidden flex">
 
-      <main class="relative z-10 flex min-h-screen items-center justify-center p-4">
-        <div class="w-full max-w-md rounded-2xl bg-white/95 p-8 shadow-2xl backdrop-blur">
-          <a href="index.html" class="mb-6 flex flex-col items-center gap-2">
-            <img src="assets/mark-training.svg" alt="Avyro" class="h-14 w-14" />
-            <span class="text-lg font-bold text-gray-900">Avyro</span>
-          </a>
-          <h1 class="text-center text-xl font-semibold">Connexion</h1>
-          <form id="form" class="mt-5 space-y-4">
+      <!-- Fond diagonal bleu / blanc -->
+      <svg class="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 1600 900">
+        <defs>
+          <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1e3a8a"/>
+            <stop offset="100%" stop-color="#1D4ED8"/>
+          </linearGradient>
+        </defs>
+        <polygon points="0,0 960,0 640,900 0,900" fill="url(#blueGrad)"/>
+        <polygon points="960,0 1600,0 1600,900 640,900" fill="#ffffff"/>
+        <line x1="960" y1="0" x2="640" y2="900" stroke="#e5e7eb" stroke-width="2"/>
+      </svg>
+
+      <!-- Gauche : branding -->
+      <div class="relative z-10 flex flex-1 flex-col items-start justify-center px-16 py-12">
+        <a href="index.html">
+          <img src="assets/logo-training2.svg" alt="Avyro Training" class="w-52" />
+        </a>
+        <p class="mt-6 max-w-xs text-sm" style="color:rgba(255,255,255,0.75)">
+          La plateforme de mutualisation<br>entre entreprises
+        </p>
+      </div>
+
+      <!-- Droite : formulaire -->
+      <div class="relative z-10 flex flex-1 items-center justify-center px-12 py-12">
+        <div class="w-full max-w-sm">
+          <h1 class="text-2xl font-bold text-gray-900">Connexion</h1>
+          <p class="mt-1 text-sm text-gray-500">Bienvenue sur Avyro</p>
+          <form id="form" class="mt-6 space-y-4">
             <input class="input" name="email" type="email" placeholder="Email" required />
             <input class="input" name="password" type="password" placeholder="Mot de passe" required />
             <p id="error" class="hidden text-sm text-red-600"></p>
@@ -31,10 +46,11 @@
           </form>
           <p class="mt-4 text-center text-sm text-gray-600">
             Pas de compte ?
-            <a href="register.html" class="font-medium text-avyro-600">Créer un compte</a>
+            <a href="register.html" class="font-medium" style="color:#1D4ED8">Créer un compte</a>
           </p>
         </div>
-      </main>
+      </div>
+
     </div>
 
     <script src="src/api.js"></script>

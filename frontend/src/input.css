@@ -7,29 +7,37 @@
     @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition;
   }
   .btn-primary {
-    @apply btn bg-avyro-600 text-white hover:bg-avyro-700;
+    @apply btn text-white;
+    background: linear-gradient(to right, #1D4ED8, #3B82F6);
+  }
+  .btn-primary:hover {
+    background: linear-gradient(to right, #1e3a8a, #1D4ED8);
   }
   .btn-ghost {
     @apply btn border border-gray-300 text-gray-700 hover:bg-gray-50;
   }
   .input {
-    @apply w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-avyro-500 focus:outline-none focus:ring-1 focus:ring-avyro-500;
+    @apply w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2;
+    focus-ring-color: #1D4ED8;
+  }
+  .input:focus {
+    border-color: #1D4ED8;
+    ring-color: #1D4ED8;
   }
   .card {
     @apply rounded-xl border border-gray-200 bg-white p-5 shadow-sm;
   }
-  /* Dégradé de marque (bleu Training -> vert Room) façon page d'accueil. */
   .brand-gradient {
-    @apply bg-gradient-to-r from-avyro-700 via-avyro-600 to-green-600;
+    background: linear-gradient(to right, #1e3a8a, #1D4ED8);
   }
   .btn-white {
     @apply btn border border-white/60 text-white hover:bg-white/15;
   }
 }
 
-/* Fondu d'entrée/sortie pour une bascule fluide entre Training et Room. */
 body {
   animation: avyro-fade-in 0.25s ease both;
+  @apply bg-white text-gray-900;
 }
 .page-leave {
   animation: none;
@@ -37,25 +45,17 @@ body {
   transition: opacity 0.18s ease;
 }
 @keyframes avyro-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
-/* Accent vert quand on est en mode « salles de réunion » (Avyro Room). */
+/* Mode Room : DA blanche, même charte bleue */
 body.mode-room {
-  @apply bg-green-50;
+  @apply bg-white;
 }
 .mode-room .btn-primary {
-  @apply bg-green-600 text-white hover:bg-green-700;
+  background: linear-gradient(to right, #1D4ED8, #3B82F6);
 }
-.mode-room .tab.text-avyro-600 {
-  @apply text-green-600;
-}
-/* En mode Room, le dégradé du header penche vers le vert. */
 .mode-room .brand-gradient {
-  @apply bg-gradient-to-r from-avyro-700 via-green-600 to-green-600;
+  background: linear-gradient(to right, #1e3a8a, #1D4ED8);
 }

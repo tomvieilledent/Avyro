@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
@@ -6,73 +6,143 @@
     <title>Avyro — Training & Room</title>
     <link rel="icon" href="assets/mark-training.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="dist/styles.css" />
+    <style>html, body { height: 100%; overflow: hidden; }</style>
   </head>
-  <body class="bg-gray-900">
-    <div class="relative min-h-screen overflow-hidden">
-      <!-- Illustration : même salle, formation à gauche / salle libre à droite -->
-      <img
-        src="assets/hero-split.svg"
-        alt="Salle de réunion : une formation se tient à gauche, la même salle est libre à droite"
-        class="absolute inset-0 h-full w-full object-cover"
-      />
-      <div class="absolute inset-0 bg-black/15"></div>
+  <body>
+    <div class="relative h-screen overflow-hidden flex flex-col">
+      <!-- Fonds colorés diagonal + liseré dans le même SVG -->
+      <svg
+        id="hero-svg"
+        style="position:fixed;inset:0;width:100vw;height:100vh;z-index:0;"
+      >
+        <defs>
+          <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1D4ED8" />
+            <stop offset="100%" stop-color="#3B82F6" />
+          </linearGradient>
+          <linearGradient id="roomGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#F8FAFC" />
+            <stop offset="100%" stop-color="#CBD5E1" />
+          </linearGradient>
+        </defs>
+        <polygon id="diag-left" fill="url(#blueGrad)" />
+        <polygon id="diag-right" fill="url(#greenGrad)" />
+        <line
+          id="diag-line"
+          stroke="white"
+          stroke-width="3"
+          stroke-opacity="0.45"
+          vector-effect="non-scaling-stroke"
+        />
+      </svg>
+      <script>
+        (function () {
+          const ANGLE_DEG = 63;
+          const svg = document.getElementById('hero-svg');
+          function update() {
+            const W = window.innerWidth;
+            const H = window.innerHeight;
+            svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+            const run = H / Math.tan((ANGLE_DEG * Math.PI) / 180);
+            const xTop = W / 2 + run / 2;
+            const xBot = W / 2 - run / 2;
+            document.getElementById('diag-left').setAttribute('points', '0,0 ' + xTop + ',0 ' + xBot + ',' + H + ' 0,' + H);
+            document.getElementById('diag-right').setAttribute('points', xTop + ',0 ' + W + ',0 ' + W + ',' + H + ' ' + xBot + ',' + H);
+            const line = document.getElementById('diag-line');
+            line.setAttribute('x1', xTop); line.setAttribute('y1', 0);
+            line.setAttribute('x2', xBot); line.setAttribute('y2', H);
+          }
+          window.addEventListener('resize', update);
+          update();
+        })();
+      </script>
 
-      <div class="relative z-10 flex min-h-screen flex-col">
-        <header class="px-6 pt-8 text-center">
-          <span class="text-3xl font-extrabold tracking-tight text-white drop-shadow-lg">
-            Avyro
-          </span>
-          <p class="mt-1 text-sm font-medium text-white/90 drop-shadow">
-            La plateforme de mutualisation entre entreprises
-          </p>
-        </header>
+      <!-- Header -->
+      <header class="fixed-top flex flex-col items-center justify-center text-center" style="position:fixed;top:0;left:0;width:100%;height:10vh;">
+        <span
+          class="text-3xl font-extrabold tracking-tight text-white drop-shadow-lg"
+          >Avyro</span
+        >
+        <p class="mt-1 text-sm font-medium text-white/90 drop-shadow">
+          La plateforme de mutualisation entre entreprises
+        </p>
+      </header>
 
-        <main class="flex flex-1 flex-col gap-10 md:flex-row md:gap-0">
-          <!-- Avyro Training (bleu, gauche) -->
-          <section class="flex flex-1 flex-col items-start justify-center gap-4 px-8 py-8 text-left md:px-16">
-            <img src="assets/mark-training.svg" alt="" class="h-16 w-16 drop-shadow-lg" />
-            <h2 class="text-4xl font-extrabold text-white drop-shadow-lg">
-              Avyro Training
-            </h2>
-            <p class="max-w-sm font-medium text-white drop-shadow">
-              Proposez vos <b>places de formation</b> restantes à d'autres
-              entreprises et <b>partagez les coûts</b>.
-            </p>
-          </section>
+      <!-- Contenu principal -->
+      <main class="relative z-10 flex flex-col items-center justify-center overflow-hidden" style="position:fixed;top:10vh;left:0;width:100%;height:80vh;">
+        <!-- Row container : position:relative pour ancrer les descriptions au bas de la photo -->
+        <div class="flex flex-row items-center w-full" style="padding: 0 3vw; gap: 3vw; position: relative;">
 
-          <!-- Avyro Room (vert, droite) -->
-          <section class="flex flex-1 flex-col items-end justify-center gap-4 px-8 py-8 text-right md:px-16">
-            <img src="assets/mark-room.svg" alt="" class="h-16 w-16 drop-shadow-lg" />
-            <h2 class="text-4xl font-extrabold text-white drop-shadow-lg">
-              Avyro Room
-            </h2>
-            <p class="max-w-sm font-medium text-white drop-shadow">
-              Mettez vos <b>salles de réunion</b> inoccupées à disposition
-              d'entreprises externes et <b>rentabilisez vos espaces</b>.
-            </p>
-          </section>
-        </main>
-
-        <footer class="flex flex-col items-center gap-3 px-6 pb-12 pt-4">
-          <div class="flex flex-wrap items-center justify-center gap-3">
-            <a
-              href="login.html"
-              class="rounded-lg bg-white px-6 py-2.5 text-sm font-semibold text-gray-900 shadow-lg transition hover:bg-gray-100"
-            >
-              Se connecter
-            </a>
-            <a
-              href="register.html"
-              class="rounded-lg border border-white/80 bg-white/10 px-6 py-2.5 text-sm font-semibold text-white shadow-lg backdrop-blur transition hover:bg-white/20"
-            >
-              Créer un compte
-            </a>
+          <!-- Avyro Training (gauche) — carte seule -->
+          <div style="flex: 0 0 15vw;">
+            <div class="bg-white rounded-2xl shadow-xl p-4 w-full">
+              <img src="assets/logo-training2.svg" alt="Avyro Training" class="w-full" />
+            </div>
           </div>
-          <p class="text-xs text-white/80 drop-shadow">
-            Un seul compte pour Avyro Training et Avyro Room.
-          </p>
-        </footer>
-      </div>
+
+          <!-- Image centrale -->
+          <img
+            src="assets/fond.jpeg"
+            alt=""
+            class="shadow-2xl"
+            style="flex: 1; min-width: 0; width: 100%; height: auto; border-radius: 10px;"
+          />
+
+          <!-- Avyro Room (droite) — carte seule -->
+          <div style="flex: 0 0 15vw;">
+            <div class="rounded-2xl shadow-xl p-4 w-full" style="background: linear-gradient(to bottom, #1d4ed8, #3b82f6);">
+              <img src="assets/logo-room2.svg" alt="Avyro Room" class="w-full" />
+            </div>
+          </div>
+
+          <!-- Description gauche — ancrée au bas du row container (= bas de la photo) -->
+          <div style="position: absolute; top: calc(100% + 0.75rem); left: 3vw; width: 22.5vw; display: flex; flex-direction: column; gap: 0.75rem;">
+            <div class="flex items-center gap-2 rounded-full bg-white/20 px-3 py-1.5" style="width: fit-content;">
+              <span class="text-xs font-semibold text-white">Formations</span>
+            </div>
+            <p class="text-sm text-white/90" style="width: fit-content;">
+              <span style="white-space: nowrap; display: block;">Une place libre sur une formation ?</span>
+              Proposez-la à d'autres entreprises et <strong class="text-white">partagez les coûts</strong>. Remplissez vos sessions, réduisez la facture.
+            </p>
+          </div>
+
+          <!-- Description droite — ancrée au bas du row container (= bas de la photo) -->
+          <div style="position: absolute; top: calc(100% + 0.75rem); right: 3vw; width: 22.5vw; display: flex; flex-direction: column; align-items: flex-end; gap: 0.75rem;">
+            <div class="flex items-center gap-2 rounded-full px-3 py-1.5" style="background-color: #e5e7eb; width: fit-content;">
+              <span class="text-xs font-semibold" style="color: #374151">Salles de réunion</span>
+            </div>
+            <p class="text-right text-sm" style="color: #1e3a8a; width: fit-content;">
+              <span style="white-space: nowrap; display: block;">Une salle de réunion inoccupée ?</span>
+              Mettez-la à disposition d'entreprises externes et <strong style="color: #1e3a8a">rentabilisez vos espaces</strong>.
+            </p>
+          </div>
+
+        </div>
+      </main>
+
+      <!-- Footer -->
+      <footer
+        class="fixed-botom flex-col items-center justify-center gap-3 px-6"
+        style="position:fixed;bottom:0;left:0;width:100%;height:10vh;"
+      >
+        <div class="flex flex-wrap items-center justify-center gap-3">
+          <a
+            href="login.html"
+            class="rounded-lg bg-white px-6 py-2.5 text-sm font-semibold text-gray-900 shadow-lg transition hover:bg-gray-100"
+          >
+            Se connecter
+          </a>
+          <a
+            href="register.html"
+            class="rounded-lg border border-white/80 bg-white/10 px-6 py-2.5 text-sm font-semibold text-gray-900 shadow-lg backdrop-blur transition hover:bg-white/20"
+          >
+            Créer un compte
+          </a>
+        </div>
+        <p class="text-xs text-center" style="color: #1e3a8a; margin-top: 0.5rem;">
+          Un seul compte pour Avyro Training et Avyro Room.
+        </p>
+      </footer>
     </div>
   </body>
 </html>
