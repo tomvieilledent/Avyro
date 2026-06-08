@@ -80,30 +80,77 @@ Avyro/
 
 ---
 
-## Démarrage rapide (dev sans Docker)
+## Lancer le projet (état actuel)
+
+> Toutes les commandes partent de la **racine du projet** (`/root/Holberton/Avyro/`),
+> sauf mention contraire.
+
+### 1. Installer les dépendances (une seule fois)
 
 ```bash
-# 1. Installer les dépendances Python
-pip install -r backend/requirements.txt
-
-# 2. Configurer l'environnement
-export FLASK_ENV=development
-export SERVE_FRONTEND=$(pwd)/frontend   # Flask sert aussi le frontend en dev
-
-# 3. Créer la base de données SQLite
+# Depuis : /root/Holberton/Avyro/backend/
 cd backend
-flask create-db
-
-# 4. Lancer le serveur
-flask run --port 8080
-# → http://localhost:8080        (frontend)
-# → http://localhost:8080/api/docs  (Swagger UI)
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-Ou avec le script fourni :
+### 2. Créer la base de données SQLite (une seule fois)
 
 ```bash
+# Depuis : /root/Holberton/Avyro/backend/   (venv activé)
+FLASK_ENV=development \
+DATABASE_URL="sqlite:////root/Holberton/Avyro/backend/dev.db" \
+SECRET_KEY="dev-change-me" \
+JWT_SECRET_KEY="dev-jwt-secret-please-change-me-32bytes" \
+python -c "
+from app import create_app
+from app.extensions import db
+app = create_app('development')
+with app.app_context():
+    db.create_all()
+    print('Tables OK')
+"
+```
+
+### 3. Lancer le serveur (frontend + API, port 8080)
+
+```bash
+# Depuis : /root/Holberton/Avyro/backend/   (venv activé)
+. .venv/bin/activate
+FLASK_ENV=development \
+DATABASE_URL="sqlite:////root/Holberton/Avyro/backend/dev.db" \
+SECRET_KEY="dev-change-me" \
+JWT_SECRET_KEY="dev-jwt-secret-please-change-me-32bytes" \
+SERVE_FRONTEND="/root/Holberton/Avyro/frontend" \
+RUN_SCHEDULER=0 \
+gunicorn -b 0.0.0.0:8080 -k gthread -w 1 --threads 4 --timeout 120 wsgi:app
+```
+
+Un seul process gunicorn sert **à la fois** le frontend statique et l'API REST.
+
+| URL | Contenu |
+|-----|---------|
+| `http://localhost:8080/` | Page d'accueil |
+| `http://localhost:8080/dashboard.html` | Dashboard |
+| `http://localhost:8080/api/health` | Health check |
+| `http://localhost:8080/api/docs` | Swagger UI |
+
+### Script tout-en-un
+
+```bash
+# Depuis : /root/Holberton/Avyro/   (racine)
 ./run-local.sh
+```
+
+Le script crée le venv, installe les dépendances, crée les tables et lance
+gunicorn. Pré-requis : `python3`. Le CSS Tailwind est recompilé si `npm` est
+présent (sinon le `dist/styles.css` existant est conservé).
+
+### Tuer le serveur
+
+```bash
+pkill -f "gunicorn.*wsgi" 2>/dev/null || true
 ```
 
 ---
