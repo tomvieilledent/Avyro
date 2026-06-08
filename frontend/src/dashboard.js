@@ -17,7 +17,7 @@ const fmtDate = (s) =>
 const MODES = {
   training: {
     kind: "training",
-    desc: "Mutualisez vos formations : proposez vos places restantes à d'autres structures.",
+    desc: "Avyro Training — mutualisez vos formations : proposez vos places restantes à d'autres entreprises.",
     tabs: {
       catalog: "Catalogue",
       mine: "Mes formations",
@@ -37,7 +37,7 @@ const MODES = {
   },
   room: {
     kind: "room",
-    desc: "Mutualisez vos salles de réunion : proposez vos salles à des entreprises externes.",
+    desc: "Avyro Room — mutualisez vos salles de réunion : proposez vos salles à des entreprises externes.",
     tabs: {
       catalog: "Salles dispo",
       mine: "Mes salles",
@@ -77,26 +77,36 @@ function activate(name) {
 }
 tabs.forEach((t) => t.addEventListener("click", () => activate(t.dataset.tab)));
 
-// ---- Application du mode (libellés, couleurs, switch) ----
+// ---- Bascule de mode avec fondu (transition fluide) ----
+function switchMode(target) {
+  if (target === currentMode) return;
+  localStorage.setItem("avyro_mode", target);
+  document.body.classList.add("page-leave"); // fondu sortant
+  setTimeout(() => location.reload(), 180);
+}
+
+// ---- Application du mode (libellés, couleurs, contrôle segmenté) ----
 function applyMode() {
-  document.body.classList.toggle("mode-room", currentMode === "room");
+  const isRoom = currentMode === "room";
+  document.body.classList.toggle("mode-room", isRoom);
+  const mark = isRoom ? "assets/mark-room.svg" : "assets/mark-training.svg";
+  document.getElementById("brand-mark").src = mark;
+  document.getElementById("favicon").href = mark;
   document.getElementById("mode-desc").textContent = MODE.desc;
   document.getElementById("new-training").textContent = MODE.newBtn;
   tabs.forEach((t) => {
     if (MODE.tabs[t.dataset.tab]) t.textContent = MODE.tabs[t.dataset.tab];
   });
 
-  const sw = document.getElementById("mode-switch");
-  const knob = document.getElementById("mode-knob");
-  const isRoom = currentMode === "room";
-  sw.classList.toggle("bg-green-600", isRoom);
-  sw.classList.toggle("bg-avyro-600", !isRoom);
-  knob.classList.toggle("translate-x-5", isRoom);
-  knob.classList.toggle("translate-x-0.5", !isRoom);
-  sw.setAttribute("aria-checked", String(isRoom));
-  sw.addEventListener("click", () => {
-    localStorage.setItem("avyro_mode", isRoom ? "training" : "room");
-    location.reload();
+  document.querySelectorAll(".mode-seg").forEach((btn) => {
+    const active = btn.dataset.mode === currentMode;
+    const activeText =
+      btn.dataset.mode === "room" ? "text-green-700" : "text-avyro-700";
+    btn.classList.toggle("bg-white", active);
+    btn.classList.toggle(activeText, active);
+    btn.classList.toggle("shadow", active);
+    btn.classList.toggle("text-white/80", !active);
+    btn.onclick = () => switchMode(btn.dataset.mode);
   });
 }
 applyMode();

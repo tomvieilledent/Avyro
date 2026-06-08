@@ -5,50 +5,45 @@ restantes, d'autres (pro ou particuliers) les réservent pour partager les coût
 
 ## Stack
 
-- **Backend** : Python / Flask REST API, SQLAlchemy, Flask-Migrate, JWT
-- **Base de données** : PostgreSQL
-- **Frontend** : HTML + Tailwind CSS + JS vanilla, servi par nginx
-- **Orchestration** : Docker Compose
+- **Backend** : Python / Flask REST API, SQLAlchemy, JWT
+- **Base de données** : SQLite (local), PostgreSQL possible en prod
+- **Frontend** : HTML + Tailwind CSS + JS vanilla
+- Un seul process Gunicorn sert le frontend **et** l'API.
 
 ## Architecture
 
 ```
 Avyro/
-├── docker-compose.yml            # db + backend + frontend
-├── docker-compose.override.yml   # surcharge dev (hot-reload)
-├── .env.example
+├── run-local.sh                  # lance toute l'app sur :8080
 ├── backend/
 │   ├── app/
-│   │   ├── __init__.py           # app factory
+│   │   ├── __init__.py           # app factory (+ sert le frontend si SERVE_FRONTEND)
 │   │   ├── config.py
 │   │   ├── extensions.py
 │   │   ├── models/               # Company, User, Training, Booking
 │   │   ├── schemas/              # validation Marshmallow
 │   │   ├── api/                  # blueprints REST (auth, trainings, bookings, companies)
+│   │   ├── services/             # mailer, maintenance (scheduler)
 │   │   └── utils/
 │   ├── tests/
-│   ├── Dockerfile
 │   └── wsgi.py
 └── frontend/
-    ├── *.html                    # landing, login, register, dashboard
-    ├── src/                      # api.js, dashboard.js, input.css
-    ├── tailwind.config.js
-    ├── Dockerfile                # build Tailwind -> nginx
-    └── nginx.conf                # proxy /api -> backend
+    ├── *.html                    # landing, login, register, dashboard, profile
+    ├── src/                      # api.js, dashboard.js, profile.js, input.css
+    └── tailwind.config.js
 ```
 
-## Démarrage
+## Démarrage (sans Docker)
 
 ```bash
-cp .env.example .env
-docker compose up --build
+./run-local.sh
 ```
 
-- Application : http://localhost:8080
-- API : http://localhost:8080/api (le backend n'est pas exposé directement,
-  tout passe par le 8080)
+Le script installe les dépendances Python, compile le CSS Tailwind (si `npm`
+présent), crée la base SQLite et lance l'app sur **http://localhost:8080**
+(frontend + API). `Ctrl+C` pour arrêter.
 
-Les migrations sont appliquées automatiquement au démarrage du backend.
+Pré-requis : `python3` (+ `node`/`npm` pour recompiler le CSS).
 
 ## API (principaux endpoints)
 

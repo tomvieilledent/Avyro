@@ -4,31 +4,37 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tableau de bord — Avyro</title>
+    <link id="favicon" rel="icon" href="assets/mark-training.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="dist/styles.css" />
   </head>
-  <body class="bg-avyro-50 text-gray-900">
-    <header class="border-b bg-white">
+  <body class="bg-gradient-to-b from-avyro-50 to-white text-gray-900">
+    <header class="brand-gradient text-white shadow-md">
       <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <div class="flex items-center gap-2 sm:gap-3">
-          <span class="text-xl font-bold text-avyro-700">Avyro</span>
-          <button
-            id="mode-switch"
-            type="button"
-            role="switch"
-            aria-label="Basculer Formations / Salles de réunion"
-            class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors"
-          >
-            <span
-              id="mode-knob"
-              class="inline-block h-5 w-5 rounded-full bg-white shadow transition-transform"
-            ></span>
-          </button>
-          <span class="text-xl font-bold text-green-700">Avyro</span>
+          <img id="brand-mark" src="assets/mark-training.svg" alt="" class="h-8 w-8 drop-shadow" />
+          <span id="brand" class="text-lg font-bold sm:text-xl">Avyro</span>
+          <!-- Contrôle segmenté Training / Room -->
+          <div class="flex items-center rounded-full bg-white/20 p-0.5 text-xs font-semibold sm:text-sm">
+            <button
+              type="button"
+              data-mode="training"
+              class="mode-seg rounded-full px-3 py-1 transition-colors"
+            >
+              Training
+            </button>
+            <button
+              type="button"
+              data-mode="room"
+              class="mode-seg rounded-full px-3 py-1 transition-colors"
+            >
+              Room
+            </button>
+          </div>
         </div>
         <div class="flex min-w-0 items-center gap-2 sm:gap-3">
-          <a href="profile.html" id="who" class="hidden max-w-[40vw] truncate text-sm font-medium text-avyro-600 hover:underline sm:inline"></a>
-          <a href="profile.html" class="btn-ghost">Profil</a>
-          <button id="logout" class="btn-ghost">Déconnexion</button>
+          <a href="profile.html" id="who" class="hidden max-w-[40vw] truncate text-sm font-medium text-white/90 hover:underline sm:inline"></a>
+          <a href="profile.html" class="btn-white">Profil</a>
+          <button id="logout" class="btn-white">Déconnexion</button>
         </div>
       </div>
     </header>

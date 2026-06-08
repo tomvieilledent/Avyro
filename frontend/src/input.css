@@ -18,15 +18,44 @@
   .card {
     @apply rounded-xl border border-gray-200 bg-white p-5 shadow-sm;
   }
+  /* Dégradé de marque (bleu Training -> vert Room) façon page d'accueil. */
+  .brand-gradient {
+    @apply bg-gradient-to-r from-avyro-700 via-avyro-600 to-green-600;
+  }
+  .btn-white {
+    @apply btn border border-white/60 text-white hover:bg-white/15;
+  }
 }
 
-/* Accent vert quand on est en mode « salles de réunion » (Avyro vert). */
+/* Fondu d'entrée/sortie pour une bascule fluide entre Training et Room. */
+body {
+  animation: avyro-fade-in 0.25s ease both;
+}
+.page-leave {
+  animation: none;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+@keyframes avyro-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Accent vert quand on est en mode « salles de réunion » (Avyro Room). */
+body.mode-room {
+  @apply bg-green-50;
+}
 .mode-room .btn-primary {
   @apply bg-green-600 text-white hover:bg-green-700;
 }
 .mode-room .tab.text-avyro-600 {
   @apply text-green-600;
 }
-.mode-room #who {
-  @apply text-green-600;
+/* En mode Room, le dégradé du header penche vers le vert. */
+.mode-room .brand-gradient {
+  @apply bg-gradient-to-r from-avyro-700 via-green-600 to-green-600;
 }

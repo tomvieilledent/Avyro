@@ -4,25 +4,38 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Connexion — Avyro</title>
+    <link rel="icon" href="assets/mark-training.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="dist/styles.css" />
   </head>
-  <body class="bg-avyro-50">
-    <main class="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4">
-      <a href="index.html" class="mb-6 text-center text-2xl font-bold text-avyro-700">Avyro</a>
-      <div class="card">
-        <h1 class="text-xl font-semibold">Connexion</h1>
-        <form id="form" class="mt-4 space-y-4">
-          <input class="input" name="email" type="email" placeholder="Email" required />
-          <input class="input" name="password" type="password" placeholder="Mot de passe" required />
-          <p id="error" class="hidden text-sm text-red-600"></p>
-          <button class="btn-primary w-full" type="submit">Se connecter</button>
-        </form>
-        <p class="mt-4 text-center text-sm text-gray-600">
-          Pas de compte ?
-          <a href="register.html" class="font-medium text-avyro-600">Créer un compte</a>
-        </p>
-      </div>
-    </main>
+  <body class="bg-gray-900">
+    <div class="relative min-h-screen overflow-hidden">
+      <img
+        src="assets/hero-split.svg"
+        alt=""
+        class="absolute inset-0 h-full w-full object-cover"
+      />
+      <div class="absolute inset-0 bg-black/40"></div>
+
+      <main class="relative z-10 flex min-h-screen items-center justify-center p-4">
+        <div class="w-full max-w-md rounded-2xl bg-white/95 p-8 shadow-2xl backdrop-blur">
+          <a href="index.html" class="mb-6 flex flex-col items-center gap-2">
+            <img src="assets/mark-training.svg" alt="Avyro" class="h-14 w-14" />
+            <span class="text-lg font-bold text-gray-900">Avyro</span>
+          </a>
+          <h1 class="text-center text-xl font-semibold">Connexion</h1>
+          <form id="form" class="mt-5 space-y-4">
+            <input class="input" name="email" type="email" placeholder="Email" required />
+            <input class="input" name="password" type="password" placeholder="Mot de passe" required />
+            <p id="error" class="hidden text-sm text-red-600"></p>
+            <button class="btn-primary w-full" type="submit">Se connecter</button>
+          </form>
+          <p class="mt-4 text-center text-sm text-gray-600">
+            Pas de compte ?
+            <a href="register.html" class="font-medium text-avyro-600">Créer un compte</a>
+          </p>
+        </div>
+      </main>
+    </div>
 
     <script src="src/api.js"></script>
     <script>

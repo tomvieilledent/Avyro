@@ -3,57 +3,76 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Avyro — Mutualisez vos formations</title>
+    <title>Avyro — Training & Room</title>
+    <link rel="icon" href="assets/mark-training.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="dist/styles.css" />
   </head>
-  <body class="bg-avyro-50 text-gray-900">
-    <header class="border-b bg-white">
-      <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-        <span class="text-xl font-bold text-avyro-700">Avyro</span>
-        <nav class="space-x-2">
-          <a href="login.html" class="btn-ghost">Connexion</a>
-          <a href="register.html" class="btn-primary">Créer un compte</a>
-        </nav>
+  <body class="bg-gray-900">
+    <div class="relative min-h-screen overflow-hidden">
+      <!-- Illustration : même salle, formation à gauche / salle libre à droite -->
+      <img
+        src="assets/hero-split.svg"
+        alt="Salle de réunion : une formation se tient à gauche, la même salle est libre à droite"
+        class="absolute inset-0 h-full w-full object-cover"
+      />
+      <div class="absolute inset-0 bg-black/15"></div>
+
+      <div class="relative z-10 flex min-h-screen flex-col">
+        <header class="px-6 pt-8 text-center">
+          <span class="text-3xl font-extrabold tracking-tight text-white drop-shadow-lg">
+            Avyro
+          </span>
+          <p class="mt-1 text-sm font-medium text-white/90 drop-shadow">
+            La plateforme de mutualisation entre entreprises
+          </p>
+        </header>
+
+        <main class="flex flex-1 flex-col gap-10 md:flex-row md:gap-0">
+          <!-- Avyro Training (bleu, gauche) -->
+          <section class="flex flex-1 flex-col items-start justify-center gap-4 px-8 py-8 text-left md:px-16">
+            <img src="assets/mark-training.svg" alt="" class="h-16 w-16 drop-shadow-lg" />
+            <h2 class="text-4xl font-extrabold text-white drop-shadow-lg">
+              Avyro Training
+            </h2>
+            <p class="max-w-sm font-medium text-white drop-shadow">
+              Proposez vos <b>places de formation</b> restantes à d'autres
+              entreprises et <b>partagez les coûts</b>.
+            </p>
+          </section>
+
+          <!-- Avyro Room (vert, droite) -->
+          <section class="flex flex-1 flex-col items-end justify-center gap-4 px-8 py-8 text-right md:px-16">
+            <img src="assets/mark-room.svg" alt="" class="h-16 w-16 drop-shadow-lg" />
+            <h2 class="text-4xl font-extrabold text-white drop-shadow-lg">
+              Avyro Room
+            </h2>
+            <p class="max-w-sm font-medium text-white drop-shadow">
+              Mettez vos <b>salles de réunion</b> inoccupées à disposition
+              d'entreprises externes et <b>rentabilisez vos espaces</b>.
+            </p>
+          </section>
+        </main>
+
+        <footer class="flex flex-col items-center gap-3 px-6 pb-12 pt-4">
+          <div class="flex flex-wrap items-center justify-center gap-3">
+            <a
+              href="login.html"
+              class="rounded-lg bg-white px-6 py-2.5 text-sm font-semibold text-gray-900 shadow-lg transition hover:bg-gray-100"
+            >
+              Se connecter
+            </a>
+            <a
+              href="register.html"
+              class="rounded-lg border border-white/80 bg-white/10 px-6 py-2.5 text-sm font-semibold text-white shadow-lg backdrop-blur transition hover:bg-white/20"
+            >
+              Créer un compte
+            </a>
+          </div>
+          <p class="text-xs text-white/80 drop-shadow">
+            Un seul compte pour Avyro Training et Avyro Room.
+          </p>
+        </footer>
       </div>
-    </header>
-
-    <main class="mx-auto max-w-5xl px-4 py-16">
-      <section class="text-center">
-        <h1 class="text-4xl font-extrabold tracking-tight sm:text-5xl">
-          Mutualisez vos formations,<br />
-          <span class="text-avyro-600">partagez les coûts.</span>
-        </h1>
-        <p class="mx-auto mt-6 max-w-2xl text-lg text-gray-600">
-          Votre entreprise a des places libres sur une formation ? Proposez-les
-          à d'autres structures, pro ou privé. Remplissez vos sessions, réduisez
-          la facture.
-        </p>
-        <div class="mt-8 flex justify-center gap-3">
-          <a href="register.html" class="btn-primary">Commencer</a>
-          <a href="login.html" class="btn-ghost">J'ai déjà un compte</a>
-        </div>
-      </section>
-
-      <section class="mt-20 grid gap-6 sm:grid-cols-3">
-        <div class="card">
-          <h3 class="font-semibold">1. Publiez</h3>
-          <p class="mt-2 text-sm text-gray-600">
-            Référencez votre formation et le nombre de places à partager.
-          </p>
-        </div>
-        <div class="card">
-          <h3 class="font-semibold">2. Partagez</h3>
-          <p class="mt-2 text-sm text-gray-600">
-            D'autres structures réservent les places disponibles.
-          </p>
-        </div>
-        <div class="card">
-          <h3 class="font-semibold">3. Économisez</h3>
-          <p class="mt-2 text-sm text-gray-600">
-            Les coûts sont répartis entre tous les participants.
-          </p>
-        </div>
-      </section>
-    </main>
+    </div>
   </body>
 </html>
