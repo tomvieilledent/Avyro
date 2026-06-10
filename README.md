@@ -110,6 +110,7 @@ Toutes les routes sont préfixées `/api`. L'authentification se fait via header
 |---------|-------|-------------|
 | `POST` | `/register` | Inscription (crée user + company) |
 | `POST` | `/login` | Connexion → access\_token + refresh\_token |
+| `POST` | `/refresh` | Renouvelle l'access token via le refresh token |
 | `GET` | `/me` | Profil de l'utilisateur connecté |
 | `PATCH` | `/me` | Mise à jour du profil (nom, email, téléphone, mot de passe) |
 
@@ -197,8 +198,8 @@ Le code postal saisi à la création est résolu vers une ville + coordonnées G
 
 Le scheduler APScheduler (activé via `RUN_SCHEDULER=1`) exécute quotidiennement :
 
-1. **Rappels** — email aux inscrits 1 jour ouvré avant le début de chaque offre
-2. **Purge** — suppression des offres dont `ends_at` est dépassé de plus de 7 jours
+1. **Rappels** — email au provider 1 jour ouvré avant le début de chaque offre, avec la liste live des inscrits confirmés
+2. **Purge** — suppression immédiate des offres dont `ends_at` est dépassé (Training et Room)
 
 ---
 

@@ -38,6 +38,15 @@
           vector-effect="non-scaling-stroke"
         />
       </svg>
+      <!--
+        Script de diagonale SVG :
+        Calcule les deux polygones (gauche bleu / droite gris) et la ligne
+        séparatrice en fonction de la taille de la fenêtre.
+        ANGLE_DEG = angle de la diagonale en degrés (mesuré depuis la verticale).
+        xTop / xBot = abscisses du point haut et du point bas de la ligne
+        diagonale, calculées via la trigonométrie (tan).
+        Le listener 'resize' recalcule à chaque redimensionnement.
+      -->
       <script>
         (function () {
           const ANGLE_DEG = 62;

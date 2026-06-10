@@ -26,6 +26,7 @@
         <polygon id="diag-right" fill="#f8fafc" />
         <line id="diag-line" stroke="white" stroke-width="3" stroke-opacity="0.45" vector-effect="non-scaling-stroke" />
       </svg>
+      <!-- Script de diagonale SVG (même logique que index.html, angle 63°) -->
       <script>
         (function () {
           const ANGLE_DEG = 63;
@@ -88,6 +89,13 @@
 
     <span style="position:fixed;bottom:1rem;right:2rem;font-size:0.7rem;color:rgba(30,58,138,0.4);letter-spacing:0.01em;z-index:10;">© 2026 AVYRO. Tous droits réservés.</span>
     <script src="src/api.js"></script>
+    <!--
+      Soumission du formulaire d'inscription :
+      POST /api/auth/register → crée la Company + le premier User (admin).
+      Si company_name est vide, l'API nommera la Company "Prénom Nom".
+      Sur succès, stocke les tokens et redirige vers le dashboard.
+      Sur erreur de validation, affiche le message ou les messages champs par champs.
+    -->
     <script>
       document.getElementById("form").addEventListener("submit", async (e) => {
         e.preventDefault();

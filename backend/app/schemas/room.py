@@ -3,6 +3,8 @@ from marshmallow import Schema, fields, validate, validates_schema, ValidationEr
 
 
 class RoomCreateSchema(Schema):
+    """Corps de la requête POST /rooms."""
+
     title = fields.Str(required=True, validate=validate.Length(min=1, max=255))
     description = fields.Str(load_default=None, allow_none=True)
     location = fields.Str(load_default=None, allow_none=True, validate=validate.Length(max=255))
@@ -24,6 +26,8 @@ class RoomCreateSchema(Schema):
 
 
 class RoomUpdateSchema(Schema):
+    """Corps de la requête PATCH /rooms/<id> (tous les champs optionnels)."""
+
     title = fields.Str(validate=validate.Length(min=1, max=255))
     description = fields.Str(allow_none=True)
     location = fields.Str(allow_none=True, validate=validate.Length(max=255))
@@ -43,6 +47,8 @@ class RoomUpdateSchema(Schema):
 
 
 class RoomQuerySchema(Schema):
+    """Paramètres de requête GET /rooms (même interface que TrainingQuerySchema)."""
+
     mine = fields.Bool(load_default=False)
     q = fields.Str(load_default=None, allow_none=True)
     lat = fields.Float(load_default=None, allow_none=True)
@@ -51,6 +57,8 @@ class RoomQuerySchema(Schema):
 
 
 class RoomSchema(Schema):
+    """Représentation publique d'une Room."""
+
     id = fields.Int(dump_only=True)
     kind = fields.Str(dump_only=True)
     title = fields.Str(dump_only=True)
@@ -74,6 +82,8 @@ class RoomSchema(Schema):
 
 
 class RoomAttendeeSchema(Schema):
+    """Inscrit confirmé dans un rapport de salle."""
+
     company_name = fields.Str()
     seats = fields.Int()
     contact_name = fields.Str()
@@ -81,6 +91,8 @@ class RoomAttendeeSchema(Schema):
 
 
 class RoomReportSchema(Schema):
+    """Compte rendu live d'une Room (liste des occupants confirmés)."""
+
     room_id = fields.Int()
     room_title = fields.Str()
     starts_at = fields.Str()

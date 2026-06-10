@@ -12,8 +12,10 @@
     <style>
       html, body { height: 100%; margin: 0; overflow: hidden; }
 
+      /* ── Base ──────────────────────────────────────────── */
       body { background: #e8f0fe; }
 
+      /* ── Header ────────────────────────────────────────── */
       .app-header {
         position: fixed; top: 0; left: 0; width: 100%; height: 60px;
         z-index: 30;
@@ -22,8 +24,10 @@
         padding: 0 2rem;
         box-shadow: 0 2px 8px rgba(15,23,62,0.25);
       }
+      /* Lien logo (retour dashboard) */
       .logo-link { color: #fff; font-size: 1.125rem; font-weight: 700; letter-spacing: -0.02em; text-decoration: none; display: flex; align-items: center; gap: 9px; }
 
+      /* Boutons de header (retour, déconnexion…) */
       .hbtn {
         display: inline-flex; align-items: center;
         border: 1px solid rgba(255,255,255,0.4);
@@ -40,19 +44,23 @@
       }
       .hbtn:hover { background: rgba(255,255,255,0.12); }
 
+      /* ── Main scroll area ──────────────────────────────── */
       .app-main {
         position: fixed; top: 60px; left: 0;
         width: 100%; height: calc(100vh - 60px);
         overflow-y: auto;
       }
+      /* Contenu centré, largeur max 720px */
       .app-content { max-width: 720px; margin: 0 auto; padding: 2rem; }
 
+      /* ── Variante mode Room (thème clair) ──────────────── */
       body.mode-room { background: #f8fafc; }
       body.mode-room .app-header { background: #fff; border-bottom: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
       body.mode-room .logo-link { color: #0f172a; }
       body.mode-room .hbtn { border-color: #e2e8f0; color: #374151; }
       body.mode-room .hbtn:hover { background: #f3f4f6; }
 
+      /* ── Footer ─────────────────────────────────────────── */
       .app-footer {
         position: fixed; bottom: 0; left: 0; width: 100%; height: 36px;
         z-index: 30;
@@ -68,12 +76,16 @@
       .footer-center { flex: 1; text-align: center; }
       .footer-right { position: absolute; right: 2rem; }
       body.mode-room .app-footer { background: #fff; border-top: 1px solid #e2e8f0; color: #94a3b8; }
+      /* Réduit la hauteur utile pour inclure le footer 36px + le header 60px */
       .app-main { height: calc(100vh - 96px) !important; }
     </style>
   </head>
   <body class="text-gray-900">
+    <!-- Applique la classe mode-room au body avant le rendu pour éviter le flash de couleur -->
     <script>if (localStorage.getItem('avyro_mode') === 'room') document.body.classList.add('mode-room');</script>
 
+    <!-- ══════════════════════ HEADER ══════════════════════ -->
+    <!-- Logo cliquable → retour dashboard + bouton "← Tableau de bord" -->
     <header class="app-header">
       <a href="dashboard.html" class="logo-link">
         <img src="assets/mark-training.svg" alt="" style="height:28px;width:28px;" />
@@ -82,10 +94,12 @@
       <a href="dashboard.html" class="hbtn">← Tableau de bord</a>
     </header>
 
+    <!-- ══════════════════════ MAIN ════════════════════════ -->
     <main class="app-main">
       <div class="app-content">
         <h1 class="text-2xl font-bold mb-6">Mon profil</h1>
 
+        <!-- Section compte : PATCH /api/auth/me (pré-rempli par profile.js) -->
         <section class="card mb-6">
           <h2 class="text-lg font-semibold">Compte</h2>
           <form id="user-form" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -93,12 +107,15 @@
             <label class="text-xs text-gray-500">Nom<input class="input" name="last_name" required /></label>
             <label class="text-xs text-gray-500 sm:col-span-2">Email<input class="input" name="email" type="email" required /></label>
             <label class="text-xs text-gray-500 sm:col-span-2">Téléphone<input class="input" name="phone" type="tel" required /></label>
+            <!-- Champ mot de passe : envoyé uniquement s'il est renseigné -->
             <label class="text-xs text-gray-500 sm:col-span-2">Nouveau mot de passe (laisser vide pour ne pas changer)<input class="input" name="password" type="password" minlength="8" placeholder="••••••••" /></label>
             <p id="user-msg" class="hidden text-sm sm:col-span-2"></p>
             <div class="sm:col-span-2"><button class="btn-primary" type="submit">Enregistrer</button></div>
           </form>
         </section>
 
+        <!-- Section structure : PATCH /api/companies/me
+             Visible uniquement aux admins (supprimée du DOM par profile.js si role != admin) -->
         <section class="card" id="company-section">
           <h2 class="text-lg font-semibold">Ma structure</h2>
           <form id="company-form" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -118,13 +135,16 @@
       </div>
     </main>
 
+    <!-- ══════════════════════ FOOTER ══════════════════════ -->
     <footer class="app-footer">
+      <!-- mode-desc : rempli par le script inline ci-dessous selon le mode actif -->
       <p id="mode-desc" class="footer-center"></p>
       <span class="footer-right">© 2026 AVYRO. Tous droits réservés.</span>
     </footer>
 
     <script src="src/api.js"></script>
     <script src="src/profile.js"></script>
+    <!-- Affiche le texte descriptif du mode actif dans le footer -->
     <script>
       const _mode = localStorage.getItem('avyro_mode') === 'room' ? 'room' : 'training';
       document.getElementById('mode-desc').textContent = _mode === 'room'
