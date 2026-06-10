@@ -30,15 +30,6 @@
         </defs>
         <polygon id="diag-left" fill="url(#blueGrad)" />
         <polygon id="diag-right" fill="url(#roomGrad)" />
-        <polygon id="overlay-left" fill="rgba(100,116,139,0.72)" style="opacity:0;transition:opacity 0.3s;pointer-events:none;" />
-        <polygon id="overlay-right" fill="rgba(100,116,139,0.72)" style="opacity:0;transition:opacity 0.3s;pointer-events:none;" />
-        <line
-          id="diag-line"
-          stroke="white"
-          stroke-width="3"
-          stroke-opacity="0.45"
-          vector-effect="non-scaling-stroke"
-        />
       </svg>
       <!--
         Script de diagonale SVG :
@@ -64,8 +55,6 @@
             const rightPts = xTop + ',0 ' + W + ',0 ' + W + ',' + H + ' ' + xBot + ',' + H;
             document.getElementById('diag-left').setAttribute('points', leftPts);
             document.getElementById('diag-right').setAttribute('points', rightPts);
-            document.getElementById('overlay-left').setAttribute('points', leftPts);
-            document.getElementById('overlay-right').setAttribute('points', rightPts);
             const line = document.getElementById('diag-line');
             line.setAttribute('x1', xTop); line.setAttribute('y1', 0);
             line.setAttribute('x2', xBot); line.setAttribute('y2', H);
@@ -114,7 +103,7 @@
           </div>
 
           <!-- Description gauche — ancrée au bas du row container (= bas de la photo) -->
-          <div style="position: absolute; top: calc(100% + 0.75rem); left: 3vw; width: 22.5vw; display: flex; flex-direction: column; gap: 0.75rem;">
+          <div id="desc-training" style="position: absolute; top: calc(100% + 0.75rem); left: 3vw; width: 22.5vw; display: flex; flex-direction: column; gap: 0.75rem; transition: filter 0.3s;">
             <div class="flex items-center gap-2 rounded-full bg-white/20 px-3 py-1.5" style="width: fit-content;">
               <span class="text-xs font-semibold text-white">Formations</span>
             </div>
@@ -125,7 +114,7 @@
           </div>
 
           <!-- Description droite — ancrée au bas du row container (= bas de la photo) -->
-          <div style="position: absolute; top: calc(100% + 0.75rem); right: 3vw; width: 22.5vw; display: flex; flex-direction: column; align-items: flex-end; gap: 0.75rem;">
+          <div id="desc-room" style="position: absolute; top: calc(100% + 0.75rem); right: 3vw; width: 22.5vw; display: flex; flex-direction: column; align-items: flex-end; gap: 0.75rem; transition: filter 0.3s;">
             <div class="flex items-center gap-2 rounded-full px-3 py-1.5" style="background-color: #e5e7eb; width: fit-content;">
               <span class="text-xs font-semibold" style="color: #374151">Salles de réunion</span>
             </div>
@@ -188,26 +177,28 @@
             location.href = 'dashboard.html?mode=training&guest=1';
           }
         });
-        cardRoom.addEventListener('mouseenter', function () {
-          overlayLeft.style.opacity = '1';
-          cardTraining.style.opacity = '0.3';
-          cardTraining.style.filter = 'grayscale(1)';
-        });
-        cardRoom.addEventListener('mouseleave', function () {
-          overlayLeft.style.opacity = '0';
-          cardTraining.style.opacity = '1';
-          cardTraining.style.filter = '';
-        });
-        cardTraining.addEventListener('mouseenter', function () {
-          overlayRight.style.opacity = '1';
-          cardRoom.style.opacity = '0.3';
-          cardRoom.style.filter = 'grayscale(1)';
-        });
-        cardTraining.addEventListener('mouseleave', function () {
-          overlayRight.style.opacity = '0';
-          cardRoom.style.opacity = '1';
-          cardRoom.style.filter = '';
-        });
+        const diagLeft     = document.getElementById('diag-left');
+        const diagRight    = document.getElementById('diag-right');
+        const descTraining = document.getElementById('desc-training');
+        const descRoom     = document.getElementById('desc-room');
+
+        function grayLeft(on) {
+          const f = on ? 'grayscale(1)' : '';
+          cardTraining.style.filter  = f;
+          diagLeft.style.filter      = f;
+          descTraining.style.filter  = f;
+        }
+        function grayRight(on) {
+          const f = on ? 'grayscale(1) brightness(0.65)' : '';
+          cardRoom.style.filter    = f;
+          diagRight.style.filter   = f;
+          descRoom.style.filter    = f;
+        }
+
+        cardRoom.addEventListener('mouseenter', () => grayLeft(true));
+        cardRoom.addEventListener('mouseleave', () => grayLeft(false));
+        cardTraining.addEventListener('mouseenter', () => grayRight(true));
+        cardTraining.addEventListener('mouseleave', () => grayRight(false));
       })();
     </script>
   </body>

@@ -68,17 +68,17 @@
           <p class="mt-1 text-sm text-gray-500 text-right">Rejoignez Avyro</p>
           <form id="form" class="mt-6 space-y-4">
             <div class="grid grid-cols-2 gap-3">
-              <input class="input" name="first_name" placeholder="Prénom" required />
-              <input class="input" name="last_name" placeholder="Nom" required />
+              <label class="flex flex-col gap-1 text-xs text-gray-500">Prénom <span style="color:#ef4444;display:inline;">*</span><input class="input" name="first_name" placeholder="Prénom" required /></label>
+              <label class="flex flex-col gap-1 text-xs text-gray-500">Nom <span style="color:#ef4444;display:inline;">*</span><input class="input" name="last_name" placeholder="Nom" required /></label>
             </div>
-            <input class="input" name="email" type="email" placeholder="Email" required />
-            <input class="input" name="phone" type="tel" placeholder="Numéro de téléphone" required />
+            <label class="flex flex-col gap-1 text-xs text-gray-500">Email <span style="color:#ef4444;display:inline;">*</span><input class="input" name="email" type="email" placeholder="Email" required /></label>
+            <label class="flex flex-col gap-1 text-xs text-gray-500">Téléphone <span style="color:#ef4444;display:inline;">*</span><input class="input" name="phone" type="tel" placeholder="Numéro de téléphone" required /></label>
             <input class="input" name="company_name" placeholder="Entreprise (optionnel)" />
             <input class="input" name="tags" placeholder="Tags de votre entreprise, séparés par des virgules (ex: IT, RH, sécurité)" />
-            <input class="input" name="password" type="password" placeholder="Mot de passe (8 car. min)" required />
+            <label class="flex flex-col gap-1 text-xs text-gray-500">Mot de passe <span style="color:#ef4444;display:inline;">*</span><input class="input" name="password" type="password" placeholder="8 caractères minimum" required /></label>
             <label class="flex items-start gap-2 text-xs text-gray-600">
               <input type="checkbox" name="consent" required style="margin-top:2px;flex-shrink:0;" />
-              <span>J'accepte la <a href="privacy.html" target="_blank" style="color:#1D4ED8;text-decoration:underline;">politique de confidentialité</a> et le traitement de mes données personnelles conformément au RGPD.</span>
+              <span>J'accepte la <a href="privacy.html" target="_blank" style="color:#1D4ED8;text-decoration:underline;">politique de confidentialité</a> et le traitement de mes données personnelles conformément au RGPD. <span style="color:#ef4444;">*</span></span>
             </label>
             <p id="error" class="hidden text-sm text-red-600"></p>
             <button class="btn-primary w-full" type="submit">Créer mon compte</button>

@@ -996,21 +996,23 @@ function renderCalendar() {
     <span style="font-weight:600;text-transform:capitalize;">${monthName}</span>
     <button class="geo-btn" onclick="_calendarMonth++;if(_calendarMonth>11){_calendarMonth=0;_calendarYear++;}renderCalendar();">›</button>
   </div>
-  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;font-size:0.75rem;">`;
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);border-left:1px solid #e2e8f0;border-top:1px solid #e2e8f0;text-align:center;font-size:0.75rem;">`;
   ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"].forEach(d => {
-    html += `<div style="padding:4px;font-weight:600;color:#64748b;">${d}</div>`;
+    html += `<div style="padding:6px 4px;font-weight:600;color:#64748b;background:#f8fafc;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;">${d}</div>`;
   });
   const start = (firstDay === 0 ? 6 : firstDay - 1);
-  for (let i = 0; i < start; i++) html += `<div></div>`;
+  for (let i = 0; i < start; i++) html += `<div style="border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;background:#fafafa;"></div>`;
   for (let day = 1; day <= daysInMonth; day++) {
     const items = itemsByDay[day] || [];
     const today = new Date(); const isToday = today.getDate()===day && today.getMonth()===month && today.getFullYear()===year;
+    const bg = isToday ? "#eff6ff" : items.length ? "#f0fdf4" : "#fff";
     const dotColor = items.length > 0 ? "#1d4ed8" : "transparent";
-    html += `<div style="padding:4px 2px;border-radius:6px;cursor:${items.length?"pointer":"default"};background:${isToday?"#eff6ff":"transparent"};border:1px solid ${isToday?"#bfdbfe":"transparent"};"
-      ${items.length ? `onclick="_showCalDay(${year},${month},${day})"` : ""}>
-      <div style="font-size:0.8125rem;font-weight:${isToday?'700':'400'};">${day}</div>
-      <div style="display:flex;justify-content:center;gap:2px;flex-wrap:wrap;min-height:8px;">
+    html += `<div style="padding:6px 4px;min-height:52px;cursor:${items.length?"pointer":"default"};background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;transition:background 0.1s;"
+      ${items.length ? `onclick="_showCalDay(${year},${month},${day})" onmouseenter="this.style.background='#dbeafe'" onmouseleave="this.style.background='${bg}'"` : ""}>
+      <div style="font-size:0.8125rem;font-weight:${isToday?'700':'400'};color:${isToday?'#1d4ed8':'#1e293b'};">${day}</div>
+      <div style="display:flex;justify-content:center;gap:2px;flex-wrap:wrap;margin-top:4px;">
         ${items.slice(0,3).map(()=>`<span style="width:6px;height:6px;border-radius:50%;background:${dotColor};display:inline-block;"></span>`).join("")}
+        ${items.length > 3 ? `<span style="font-size:0.6rem;color:#64748b;">+${items.length-3}</span>` : ""}
       </div>
     </div>`;
   }

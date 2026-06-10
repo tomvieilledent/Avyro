@@ -20,10 +20,10 @@
       .app-header {
         position: fixed; top: 0; left: 0; width: 100%; height: 60px;
         z-index: 30;
-        background: #1e3a8a;
+        background: linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%);
         display: flex; align-items: center; justify-content: space-between;
         padding: 0 1.5rem;
-        box-shadow: 0 2px 12px rgba(15,23,62,0.22);
+        box-shadow: 0 2px 12px rgba(29,78,216,0.28);
       }
       body.mode-room .app-header {
         background: #ffffff;
@@ -328,7 +328,7 @@
       .modal-head {
         padding: 1.25rem 1.5rem;
         border-bottom: 1px solid rgba(255,255,255,0.15);
-        background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
+        background: linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%);
         border-radius: 16px 16px 0 0;
       }
       .modal-body { padding: 1.5rem; }
@@ -337,7 +337,7 @@
       .app-footer {
         position: fixed; bottom: 0; left: 0; width: 100%; height: 36px;
         z-index: 30;
-        background: #1e3a8a;
+        background: linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%);
         display: flex; align-items: center; justify-content: center;
         border-top: 1px solid rgba(255,255,255,0.08);
         font-size: 0.75rem;
@@ -550,7 +550,7 @@
         </div>
         <div class="modal-body">
           <form id="training-form" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <input id="f-title" class="input sm:col-span-2" name="title" placeholder="Titre" required />
+            <label class="text-xs text-gray-500 sm:col-span-2" style="display:flex;flex-direction:column;gap:4px;">Titre <span style="color:#ef4444;">*</span><input id="f-title" class="input" name="title" placeholder="Titre" required /></label>
             <input id="f-tags" class="input sm:col-span-2" name="tags" placeholder="Tags séparés par des virgules (ex: IT, management, sécurité)" />
             <textarea class="input sm:col-span-2" name="description" placeholder="Description" rows="3" style="resize:vertical;"></textarea>
             <div class="sm:col-span-2" style="position:relative;">
@@ -560,10 +560,10 @@
             <input id="f-addr-line1" class="input sm:col-span-2" name="addr_line1" placeholder="Adresse" readonly tabindex="-1" style="background:#e2e8f0;color:#64748b;cursor:default;pointer-events:none;user-select:none;" />
             <input id="f-cp" class="input" name="postal_code" placeholder="Code postal" maxlength="10" readonly tabindex="-1" style="background:#e2e8f0;color:#64748b;cursor:default;pointer-events:none;user-select:none;" />
             <input id="f-city" class="input" name="city" placeholder="Ville" readonly tabindex="-1" style="background:#e2e8f0;color:#64748b;cursor:default;pointer-events:none;user-select:none;" />
-            <input class="input sm:col-span-2" name="contact_phone" type="tel" placeholder="Numéro de contact" required />
-            <label class="text-xs text-gray-500" style="display:flex;flex-direction:column;gap:4px;">Début<input class="input" name="starts_at" type="datetime-local" required /></label>
-            <label class="text-xs text-gray-500" style="display:flex;flex-direction:column;gap:4px;">Fin<input class="input" name="ends_at" type="datetime-local" required /></label>
-            <label id="f-seats-label" class="text-xs text-gray-500" style="display:flex;flex-direction:column;gap:4px;">Places proposées<input class="input" name="shared_seats" type="number" min="1" required /></label>
+            <label class="text-xs text-gray-500 sm:col-span-2" style="display:flex;flex-direction:column;gap:4px;">Numéro de contact <span style="color:#ef4444;">*</span><input class="input" name="contact_phone" type="tel" placeholder="Numéro de contact" required /></label>
+            <label class="text-xs text-gray-500" style="display:flex;flex-direction:column;gap:4px;">Début <span style="color:#ef4444;">*</span><input class="input" name="starts_at" type="datetime-local" required /></label>
+            <label class="text-xs text-gray-500" style="display:flex;flex-direction:column;gap:4px;">Fin <span style="color:#ef4444;">*</span><input class="input" name="ends_at" type="datetime-local" required /></label>
+            <label id="f-seats-label" class="text-xs text-gray-500" style="display:flex;flex-direction:column;gap:4px;">Places proposées <span style="color:#ef4444;">*</span><input class="input" name="shared_seats" type="number" min="1" required /></label>
             <label class="text-xs text-gray-500" style="display:flex;flex-direction:column;gap:4px;">Prix / place (€)<input class="input" name="price_per_seat" type="number" min="0" step="0.01" /></label>
             <p id="training-error" class="sm:col-span-2 hidden text-sm text-red-600"></p>
             <div class="sm:col-span-2 mt-2 flex justify-end gap-2">
@@ -578,7 +578,7 @@
     <!-- ══════════════════════ BOOKING MODAL ══════════════ -->
     <div id="book-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4" style="backdrop-filter:blur(2px);">
       <div style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;box-shadow:0 24px 64px rgba(15,23,62,0.14),0 4px 16px rgba(15,23,62,0.06);width:100%;max-width:400px;overflow:hidden;">
-        <div id="book-modal-head" style="padding:1.25rem 1.5rem;background:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 100%);border-radius:16px 16px 0 0;">
+        <div id="book-modal-head" style="padding:1.25rem 1.5rem;background:linear-gradient(135deg,#1D4ED8 0%,#3B82F6 100%);border-radius:16px 16px 0 0;">
           <p style="margin:0 0 0.2rem;font-size:0.6875rem;font-weight:600;color:rgba(255,255,255,0.65);text-transform:uppercase;letter-spacing:0.07em;">Réservation</p>
           <h3 id="book-modal-title" style="margin:0;font-size:1rem;font-weight:600;color:#fff;letter-spacing:-0.01em;"></h3>
         </div>
