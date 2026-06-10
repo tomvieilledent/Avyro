@@ -29,7 +29,9 @@
           </linearGradient>
         </defs>
         <polygon id="diag-left" fill="url(#blueGrad)" />
-        <polygon id="diag-right" fill="url(#greenGrad)" />
+        <polygon id="diag-right" fill="url(#roomGrad)" />
+        <polygon id="overlay-left" fill="rgba(100,116,139,0.72)" style="opacity:0;transition:opacity 0.3s;pointer-events:none;" />
+        <polygon id="overlay-right" fill="rgba(100,116,139,0.72)" style="opacity:0;transition:opacity 0.3s;pointer-events:none;" />
         <line
           id="diag-line"
           stroke="white"
@@ -58,8 +60,12 @@
             const run = H / Math.tan((ANGLE_DEG * Math.PI) / 180);
             const xTop = W / 2 + run / 2;
             const xBot = W / 2 - run / 2;
-            document.getElementById('diag-left').setAttribute('points', '0,0 ' + xTop + ',0 ' + xBot + ',' + H + ' 0,' + H);
-            document.getElementById('diag-right').setAttribute('points', xTop + ',0 ' + W + ',0 ' + W + ',' + H + ' ' + xBot + ',' + H);
+            const leftPts = '0,0 ' + xTop + ',0 ' + xBot + ',' + H + ' 0,' + H;
+            const rightPts = xTop + ',0 ' + W + ',0 ' + W + ',' + H + ' ' + xBot + ',' + H;
+            document.getElementById('diag-left').setAttribute('points', leftPts);
+            document.getElementById('diag-right').setAttribute('points', rightPts);
+            document.getElementById('overlay-left').setAttribute('points', leftPts);
+            document.getElementById('overlay-right').setAttribute('points', rightPts);
             const line = document.getElementById('diag-line');
             line.setAttribute('x1', xTop); line.setAttribute('y1', 0);
             line.setAttribute('x2', xBot); line.setAttribute('y2', H);
@@ -86,7 +92,7 @@
         <div class="flex flex-row items-center w-full" style="padding: 0 3vw; gap: 3vw; position: relative;">
 
           <!-- Avyro Training (gauche) — carte seule -->
-          <div style="flex: 0 0 15vw;">
+          <div id="card-training" style="flex: 0 0 15vw; cursor:pointer; transition: opacity 0.3s, filter 0.3s;">
             <div class="bg-white rounded-2xl shadow-xl p-4 w-full">
               <img src="assets/logo-training2.svg" alt="Avyro Training" class="w-full" />
             </div>
@@ -101,7 +107,7 @@
           />
 
           <!-- Avyro Room (droite) — carte seule -->
-          <div style="flex: 0 0 15vw;">
+          <div id="card-room" style="flex: 0 0 15vw; cursor:pointer; transition: opacity 0.3s, filter 0.3s;">
             <div class="rounded-2xl shadow-xl p-4 w-full" style="background: linear-gradient(to bottom, #1d4ed8, #3b82f6);">
               <img src="assets/logo-room2.svg" alt="Avyro Room" class="w-full" />
             </div>
@@ -149,7 +155,7 @@
           </a>
           <a
             href="register.html"
-            class="rounded-lg border border-white/80 bg-white/10 px-6 py-2.5 text-sm font-semibold text-gray-900 shadow-lg backdrop-blur transition hover:bg-white/20"
+            class="rounded-lg bg-white px-6 py-2.5 text-sm font-semibold text-gray-900 shadow-lg transition hover:bg-gray-100"
           >
             Créer un compte
           </a>
@@ -160,5 +166,49 @@
         <span style="position:absolute;right:2rem;bottom:0;height:30%;display:flex;align-items:center;font-size:0.7rem;color:rgba(30,58,138,0.45);letter-spacing:0.01em;">© 2026 AVYRO. Tous droits réservés.</span>
       </footer>
     </div>
+    <script>
+      (function () {
+        const overlayLeft = document.getElementById('overlay-left');
+        const overlayRight = document.getElementById('overlay-right');
+        const cardTraining = document.getElementById('card-training');
+        const cardRoom = document.getElementById('card-room');
+        cardRoom.addEventListener('click', function () {
+          if (localStorage.getItem('avyro_token')) {
+            localStorage.setItem('avyro_mode', 'room');
+            location.href = 'dashboard.html';
+          } else {
+            location.href = 'dashboard.html?mode=room&guest=1';
+          }
+        });
+        cardTraining.addEventListener('click', function () {
+          if (localStorage.getItem('avyro_token')) {
+            localStorage.setItem('avyro_mode', 'training');
+            location.href = 'dashboard.html';
+          } else {
+            location.href = 'dashboard.html?mode=training&guest=1';
+          }
+        });
+        cardRoom.addEventListener('mouseenter', function () {
+          overlayLeft.style.opacity = '1';
+          cardTraining.style.opacity = '0.3';
+          cardTraining.style.filter = 'grayscale(1)';
+        });
+        cardRoom.addEventListener('mouseleave', function () {
+          overlayLeft.style.opacity = '0';
+          cardTraining.style.opacity = '1';
+          cardTraining.style.filter = '';
+        });
+        cardTraining.addEventListener('mouseenter', function () {
+          overlayRight.style.opacity = '1';
+          cardRoom.style.opacity = '0.3';
+          cardRoom.style.filter = 'grayscale(1)';
+        });
+        cardTraining.addEventListener('mouseleave', function () {
+          overlayRight.style.opacity = '0';
+          cardRoom.style.opacity = '1';
+          cardRoom.style.filter = '';
+        });
+      })();
+    </script>
   </body>
 </html>

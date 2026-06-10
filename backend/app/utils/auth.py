@@ -8,6 +8,12 @@ from flask_smorest import abort
 from app.models import User
 
 
+def current_user_optional() -> "User | None":
+    """Comme current_user() mais retourne None si pas de JWT."""
+    user_id = get_jwt_identity()
+    return db_get_user(int(user_id)) if user_id is not None else None
+
+
 def current_user() -> User:
     """
     Renvoie l'utilisateur authentifié depuis le JWT en cours.

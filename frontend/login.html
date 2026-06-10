@@ -100,6 +100,10 @@
             body: { email: f.get("email"), password: f.get("password") },
           });
           Avyro.setSession(data);
+          const next = new URLSearchParams(location.search).get('next');
+          if (next === 'room' || next === 'training') {
+            localStorage.setItem('avyro_mode', next);
+          }
           location.href = "dashboard.html";
         } catch (ex) {
           err.textContent = ex.data?.message || "Identifiants invalides";

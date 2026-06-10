@@ -16,7 +16,7 @@ from app.schemas import (
     RoomReportSchema,
     MessageSchema,
 )
-from app.utils.auth import current_user
+from app.utils.auth import current_user, current_user_optional
 from app.utils.geo import apply_geo_filter
 
 blp = Blueprint(
@@ -56,18 +56,19 @@ class RoomReportsView(MethodView):
 
 @blp.route("")
 class RoomListView(MethodView):
-    decorators = [jwt_required()]
+    decorators = [jwt_required(optional=True)]
 
     @blp.arguments(RoomQuerySchema, location="query")
     @blp.response(200, RoomSchema(many=True))
     def get(self, args: dict):
         """Catalogue des salles disponibles ou mes salles (mine=true)."""
-        user = current_user()
-        query = (
-            Room.query.filter_by(provider_id=user.company_id)
-            if args["mine"]
-            else Room.query.filter_by(status="open")
-        )
+        user = current_user_optional()
+        if args["mine"]:
+            if user is None:
+                return []
+            query = Room.query.filter_by(provider_id=user.company_id)
+        else:
+            query = Room.query.filter_by(status="open")
         if args.get("q"):
             q = f"%{args['q']}%"
             query = query.filter(

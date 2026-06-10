@@ -403,7 +403,11 @@
           <button type="button" data-mode="room" class="mode-seg">Room</button>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0;">
+      <div id="guest-actions" style="display:none;align-items:center;gap:0.5rem;flex-shrink:0;">
+        <a href="register.html" class="hbtn">Créer un compte</a>
+        <a id="guest-login-btn" href="login.html" class="hbtn">Se connecter</a>
+      </div>
+      <div id="auth-actions" style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0;">
         <a href="profile.html" id="who" class="hidden sm:inline"></a>
         <a href="profile.html" class="hbtn">Profil</a>
         <button id="logout" class="hbtn">Déconnexion</button>

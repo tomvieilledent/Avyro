@@ -66,7 +66,19 @@ function resolvePostalCode(cp) {
   return CP_LOOKUP[cp] || CP_LOOKUP[cp.slice(0, 2)] || null;
 }
 
-Avyro.requireAuth();
+const _urlParams = new URLSearchParams(location.search);
+const isGuest = _urlParams.get('guest') === '1';
+const _modeParam = _urlParams.get('mode');
+
+if (!isGuest) {
+  Avyro.requireAuth();
+} else {
+  Avyro.enableGuestMode();
+}
+
+if (_modeParam === 'room' || _modeParam === 'training') {
+  localStorage.setItem('avyro_mode', _modeParam);
+}
 
 const user = Avyro.currentUser();
 document.getElementById("who").textContent = user
@@ -250,6 +262,16 @@ function applyMode() {
     btn.classList.toggle("text-white/80", !active);
     btn.onclick = () => switchMode(btn.dataset.mode);
   });
+
+  if (isGuest) {
+    document.getElementById('guest-actions').style.display = 'flex';
+    document.getElementById('auth-actions').style.display = 'none';
+    document.getElementById('guest-login-btn').href = `login.html?next=${currentMode}`;
+    document.querySelectorAll('.tab').forEach(t => {
+      t.style.display = t.dataset.tab === 'catalog' ? '' : 'none';
+    });
+    document.getElementById('new-training').style.display = 'none';
+  }
 }
 applyMode();
 
@@ -461,11 +483,10 @@ const loaders = {
     }
     const qs   = params.toString();
     const list = await Avyro.api(`${apiBase()}${qs ? "?" + qs : ""}`);
-    // Exclut les formations de la propre Company de l'utilisateur
     list
-      .filter((t) => t.provider_id !== user.company_id)
+      .filter((t) => !user || t.provider_id !== user.company_id)
       .forEach((t) => {
-        const card = trainingCard(t, { canBook: true });
+        const card = trainingCard(t, { canBook: !isGuest });
         if (card) c.appendChild(card);
       });
     if (!c.children.length)

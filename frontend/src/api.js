@@ -14,6 +14,7 @@
  * et l'utilisateur est renvoyé vers login.html automatiquement.
  */
 const API_BASE = window.AVYRO_API_BASE || "/api";
+let _guestMode = false;
 
 function getToken() {
   return localStorage.getItem("avyro_token");
@@ -48,7 +49,7 @@ function currentUser() {
 async function api(path, { method = "GET", body } = {}) {
   const headers = { "Content-Type": "application/json" };
   const token = getToken();
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (token && !_guestMode) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetch(`${API_BASE}${path}`, {
     method,
@@ -57,7 +58,7 @@ async function api(path, { method = "GET", body } = {}) {
   });
 
   // 401 → session expirée ou invalide : déconnexion et redirection
-  if (res.status === 401) {
+  if (res.status === 401 && !_guestMode) {
     clearSession();
     if (!location.pathname.endsWith("login.html")) location.href = "login.html";
   }
@@ -72,4 +73,6 @@ function requireAuth() {
   if (!getToken()) location.href = "login.html";
 }
 
-window.Avyro = { api, setSession, clearSession, currentUser, requireAuth, getToken };
+function enableGuestMode() { _guestMode = true; }
+
+window.Avyro = { api, setSession, clearSession, currentUser, requireAuth, getToken, enableGuestMode };

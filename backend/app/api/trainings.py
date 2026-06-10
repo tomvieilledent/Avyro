@@ -16,7 +16,7 @@ from app.schemas import (
     TrainingReportSchema,
     MessageSchema,
 )
-from app.utils.auth import current_user
+from app.utils.auth import current_user, current_user_optional
 from app.utils.geo import apply_geo_filter
 
 blp = Blueprint(
@@ -56,18 +56,19 @@ class TrainingReportsView(MethodView):
 
 @blp.route("")
 class TrainingListView(MethodView):
-    decorators = [jwt_required()]
+    decorators = [jwt_required(optional=True)]
 
     @blp.arguments(TrainingQuerySchema, location="query")
     @blp.response(200, TrainingSchema(many=True))
     def get(self, args: dict):
         """Catalogue des formations ou mes formations (mine=true)."""
-        user = current_user()
-        query = (
-            Training.query.filter_by(provider_id=user.company_id)
-            if args["mine"]
-            else Training.query.filter_by(status="open")
-        )
+        user = current_user_optional()
+        if args["mine"]:
+            if user is None:
+                return []
+            query = Training.query.filter_by(provider_id=user.company_id)
+        else:
+            query = Training.query.filter_by(status="open")
         if args.get("q"):
             q = f"%{args['q']}%"
             query = query.filter(
