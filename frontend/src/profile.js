@@ -47,9 +47,10 @@ const userForm = document.getElementById("user-form");
   userForm.email.value = me.email;
   userForm.phone.value = me.phone || "";
 
-  // La section société n'est accessible qu'aux admins
+  // La section société et invitation ne sont accessibles qu'aux admins
   if (me.role !== "admin") {
-    document.getElementById("company-section").remove();
+    document.getElementById("company-section")?.remove();
+    document.getElementById("invite-section")?.remove();
     return;
   }
   // Pré-remplit le formulaire société depuis GET /api/companies/me
@@ -83,6 +84,58 @@ userForm.addEventListener("submit", async (e) => {
     flash("user-msg", false, errText(ex));
   }
 });
+
+// ── RGPD ─────────────────────────────────────────────────────────────────────
+
+document.getElementById("btn-export")?.addEventListener("click", async (e) => {
+  e.preventDefault();
+  try {
+    const token = Avyro.getToken();
+    const res = await fetch("/api/auth/me/export", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "avyro_mes_donnees.json"; a.click();
+    URL.revokeObjectURL(url);
+  } catch (ex) {
+    flash("rgpd-msg", false, errText(ex));
+  }
+});
+
+document.getElementById("btn-delete")?.addEventListener("click", async () => {
+  if (!confirm("Supprimer définitivement votre compte ? Cette action est irréversible.")) return;
+  if (!confirm("Confirmez-vous la suppression de toutes vos données personnelles ?")) return;
+  try {
+    await Avyro.api("/auth/me", { method: "DELETE" });
+    Avyro.clearSession();
+    location.href = "index.html";
+  } catch (ex) {
+    flash("rgpd-msg", false, errText(ex));
+  }
+});
+
+// ── Invitation membre ─────────────────────────────────────────────────────────
+
+const inviteForm = document.getElementById("invite-form");
+if (inviteForm) {
+  inviteForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const body = {
+      email: inviteForm.email.value,
+      role: inviteForm.role.value,
+    };
+    try {
+      await Avyro.api("/companies/me/invite", { method: "POST", body });
+      flash("invite-msg", true, "Invitation envoyée à " + body.email + ".");
+      inviteForm.reset();
+    } catch (ex) {
+      flash("invite-msg", false, errText(ex));
+    }
+  });
+}
 
 // ── Sauvegarde des informations de la société ─────────────────────────────────
 

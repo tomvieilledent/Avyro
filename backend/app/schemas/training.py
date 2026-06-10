@@ -39,6 +39,7 @@ class TrainingCreateSchema(Schema):
         load_default="open",
         validate=validate.OneOf(["open", "closed", "cancelled"]),
     )
+    tags = fields.List(fields.Str(), load_default=None, allow_none=True)
 
     @validates_schema
     def validate_dates(self, data, **kwargs):
@@ -59,9 +60,12 @@ class TrainingUpdateSchema(Schema):
     contact_phone = fields.Str(validate=validate.Length(min=6, max=30))
     starts_at = fields.DateTime()
     ends_at = fields.DateTime()
+    latitude = fields.Float(allow_none=True)
+    longitude = fields.Float(allow_none=True)
     shared_seats = fields.Int(validate=validate.Range(min=1))
     price_per_seat = fields.Float(validate=validate.Range(min=0))
     status = fields.Str(validate=validate.OneOf(["open", "closed", "cancelled"]))
+    tags = fields.List(fields.Str(), allow_none=True)
 
     @validates_schema
     def validate_dates(self, data, **kwargs):
@@ -77,6 +81,12 @@ class TrainingQuerySchema(Schema):
 
     mine = fields.Bool(load_default=False)
     q = fields.Str(load_default=None, allow_none=True)
+    tag = fields.Str(load_default=None, allow_none=True)
+    date_from = fields.Date(load_default=None, allow_none=True)
+    date_to = fields.Date(load_default=None, allow_none=True)
+    price_max = fields.Float(load_default=None, allow_none=True)
+    seats_min = fields.Int(load_default=None, allow_none=True)
+    remote_only = fields.Bool(load_default=False)
     lat = fields.Float(load_default=None, allow_none=True)
     lng = fields.Float(load_default=None, allow_none=True)
     radius = fields.Float(load_default=25.0)
@@ -103,6 +113,7 @@ class TrainingSchema(Schema):
     booked_seats = fields.Int(dump_only=True)
     available_seats = fields.Int(dump_only=True)
     price_per_seat = fields.Float(dump_only=True)
+    tags = fields.List(fields.Str(), dump_only=True)
     status = fields.Str(dump_only=True)
     provider_id = fields.Int(dump_only=True)
     provider_name = fields.Str(dump_only=True, allow_none=True)

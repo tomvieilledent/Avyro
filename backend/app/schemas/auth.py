@@ -35,6 +35,7 @@ class RegisterSchema(Schema):
         allow_none=True,
         metadata={"example": "Acme Corp"},
     )
+    tags = fields.List(fields.Str(), load_default=None, allow_none=True)
 
 
 class LoginSchema(Schema):
@@ -86,3 +87,20 @@ class AccessTokenSchema(Schema):
     """Réponse d'un refresh réussi."""
 
     access_token = fields.Str()
+
+
+class InviteSchema(Schema):
+    """Corps de la requête POST /companies/me/invite."""
+
+    email = fields.Email(required=True)
+    role = fields.Str(load_default="member", validate=validate.OneOf(["member", "admin"]))
+
+
+class AcceptInviteSchema(Schema):
+    """Corps de la requête POST /auth/accept-invite."""
+
+    token = fields.Str(required=True)
+    first_name = fields.Str(required=True, validate=validate.Length(min=1, max=120))
+    last_name = fields.Str(required=True, validate=validate.Length(min=1, max=120))
+    phone = fields.Str(required=True, validate=validate.Length(min=6, max=30))
+    password = fields.Str(required=True, validate=validate.Length(min=8), load_only=True)

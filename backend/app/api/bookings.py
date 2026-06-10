@@ -12,10 +12,23 @@ from app.schemas import (
     BookingCreateSchema,
     BookingUpdateSchema,
     BookingSchema,
+    BookingCountsSchema,
     KindQuerySchema,
     MessageSchema,
 )
+from app.services.mailer import send_email
 from app.utils.auth import current_user
+
+
+def _fmt(dt) -> str:
+    return dt.strftime("%d/%m/%Y à %H:%M") if dt else "—"
+
+
+def _provider_email(item) -> "str | None":
+    if item.provider.contact_email:
+        return item.provider.contact_email
+    admin = next((u for u in item.provider.users if u.role == "admin"), None)
+    return admin.email if admin else None
 
 blp = Blueprint(
     "bookings",
@@ -23,6 +36,27 @@ blp = Blueprint(
     url_prefix="/api/bookings",
     description="Gestion des réservations de places.",
 )
+
+
+@blp.route("/counts")
+class BookingCountsView(MethodView):
+    decorators = [jwt_required()]
+
+    @blp.response(200, BookingCountsSchema)
+    def get(self):
+        """Compteurs de réservations en attente pour le provider connecté."""
+        user = current_user()
+        t_count = (
+            Booking.query.join(Training, Booking.training_id == Training.id)
+            .filter(Training.provider_id == user.company_id, Booking.status == "pending")
+            .count()
+        )
+        r_count = (
+            Booking.query.join(Room, Booking.room_id == Room.id)
+            .filter(Room.provider_id == user.company_id, Booking.status == "pending")
+            .count()
+        )
+        return {"pending_incoming_training": t_count, "pending_incoming_room": r_count}
 
 
 @blp.route("/incoming")
@@ -110,10 +144,30 @@ class BookingListView(MethodView):
             company_id=user.company_id,
             requested_by_id=user.id,
             seats=args["seats"],
+            note=args.get("note"),
             status="pending",
         )
         db.session.add(booking)
         db.session.commit()
+
+        provider_addr = _provider_email(item)
+        if provider_addr:
+            send_email(
+                to=provider_addr,
+                subject=f"Nouvelle demande de réservation — {item.title}",
+                body=(
+                    f"Bonjour,\n\n"
+                    f"{booking.company.name} a soumis une demande de réservation "
+                    f"pour votre offre.\n\n"
+                    f"Offre       : {item.title}\n"
+                    f"Date        : {_fmt(item.starts_at)}\n"
+                    f"Places      : {booking.seats}\n"
+                    f"Demandé par : {booking.requested_by.full_name} "
+                    f"({booking.requested_by.email})\n\n"
+                    f"Connectez-vous à Avyro pour confirmer ou refuser."
+                    + (f"\n\nNote du demandeur :\n{booking.note}" if booking.note else "")
+                ),
+            )
         return booking.to_dict()
 
 
@@ -138,6 +192,36 @@ class BookingDetailView(MethodView):
 
         booking.status = args["status"]
         db.session.commit()
+
+        requester_email = booking.requested_by.email
+        if args["status"] == "confirmed":
+            send_email(
+                to=requester_email,
+                subject=f"Réservation confirmée — {item.title}",
+                body=(
+                    f"Bonjour {booking.requested_by.full_name},\n\n"
+                    f"Votre réservation a été confirmée.\n\n"
+                    f"Offre    : {item.title}\n"
+                    f"Date     : {_fmt(item.starts_at)}\n"
+                    f"Places   : {booking.seats}\n"
+                    f"Provider : {item.provider.name}\n\n"
+                    f"Connectez-vous à Avyro pour plus de détails."
+                ),
+            )
+        elif args["status"] == "cancelled":
+            send_email(
+                to=requester_email,
+                subject=f"Réservation refusée — {item.title}",
+                body=(
+                    f"Bonjour {booking.requested_by.full_name},\n\n"
+                    f"Votre demande de réservation a été refusée.\n\n"
+                    f"Offre    : {item.title}\n"
+                    f"Date     : {_fmt(item.starts_at)}\n"
+                    f"Places   : {booking.seats}\n"
+                    f"Provider : {item.provider.name}\n\n"
+                    f"D'autres offres sont disponibles sur Avyro."
+                ),
+            )
         return booking.to_dict()
 
     @blp.response(200, MessageSchema)
@@ -152,6 +236,25 @@ class BookingDetailView(MethodView):
         if booking.status != "pending":
             abort(400, message="Impossible d'annuler une réservation déjà confirmée.")
 
+        item = booking._item
+        provider_addr = _provider_email(item)
+        booker_name = booking.company.name
+        item_title = item.title
+        item_starts = item.starts_at
+
         db.session.delete(booking)
         db.session.commit()
+
+        if provider_addr:
+            send_email(
+                to=provider_addr,
+                subject=f"Annulation de réservation — {item_title}",
+                body=(
+                    f"Bonjour,\n\n"
+                    f"{booker_name} a annulé sa demande de réservation.\n\n"
+                    f"Offre : {item_title}\n"
+                    f"Date  : {_fmt(item_starts)}\n\n"
+                    f"Les places sont à nouveau disponibles sur Avyro."
+                ),
+            )
         return {"message": "Désinscription effectuée."}

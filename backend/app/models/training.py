@@ -5,6 +5,8 @@ mutualisée (kind='room').
 Un seul modèle pour les deux types : même workflow (publication → réservation
 → confirmation). Le champ `kind` discrimine les deux modes de l'interface.
 """
+import json
+
 from sqlalchemy import select, func
 from sqlalchemy.ext.hybrid import hybrid_property
 
@@ -53,6 +55,8 @@ class Training(TimestampMixin, db.Model):
 
     # True une fois le mail de rappel envoyé (idempotence, anti-doublon)
     reminder_sent = db.Column(db.Boolean, default=False, nullable=False)
+    # Tags JSON stockés en TEXT (ex: '["management","it"]')
+    _tags = db.Column("tags", db.Text, nullable=True)
 
     provider_id = db.Column(
         db.Integer, db.ForeignKey("companies.id"), nullable=False, index=True
@@ -64,6 +68,17 @@ class Training(TimestampMixin, db.Model):
         cascade="all, delete-orphan",
         # Chargement lazy par défaut ; utiliser joinedload() si besoin de perf
     )
+
+    @property
+    def tags(self) -> list:
+        try:
+            return json.loads(self._tags) if self._tags else []
+        except (ValueError, TypeError):
+            return []
+
+    @tags.setter
+    def tags(self, value: list | None):
+        self._tags = json.dumps(value) if value else None
 
     def __repr__(self) -> str:
         return (
@@ -138,6 +153,7 @@ class Training(TimestampMixin, db.Model):
             "booked_seats": self.booked_seats,
             "available_seats": self.available_seats,
             "price_per_seat": float(self.price_per_seat),
+            "tags": self.tags,
             "status": self.status,
             "provider_id": self.provider_id,
             "provider_name": self.provider.name if self.provider else None,

@@ -11,6 +11,7 @@ class UpdateCompanySchema(Schema):
         validate=validate.Length(max=20), allow_none=True, load_default=None
     )
     contact_email = fields.Email(allow_none=True, load_default=None)
+    tags = fields.List(fields.Str(), allow_none=True)
 
 
 class CompanySchema(Schema):
@@ -21,4 +22,5 @@ class CompanySchema(Schema):
     kind = fields.Str(dump_only=True)
     siret = fields.Str(dump_only=True, allow_none=True)
     contact_email = fields.Str(dump_only=True, allow_none=True)
+    tags = fields.List(fields.Str(), dump_only=True)
     created_at = fields.Str(dump_only=True)

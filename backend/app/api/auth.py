@@ -2,12 +2,15 @@
 Routes d'authentification : inscription, connexion, refresh token, profil.
 Préfixe : /api/auth
 """
+from datetime import timedelta
+
 from flask.views import MethodView
 from flask_jwt_extended import (
     create_access_token,
     create_refresh_token,
     jwt_required,
     get_jwt_identity,
+    decode_token,
 )
 from flask_smorest import Blueprint, abort
 
@@ -20,6 +23,8 @@ from app.schemas import (
     UserSchema,
     TokenResponseSchema,
     AccessTokenSchema,
+    AcceptInviteSchema,
+    MessageSchema,
 )
 from app.utils.auth import current_user
 
@@ -74,6 +79,8 @@ class RegisterView(MethodView):
             name=company_name,
             kind="pro" if args.get("company_name") else "private",
         )
+        if args.get("tags"):
+            company.tags = args["tags"]
         db.session.add(company)
         db.session.flush()  # Génère company.id sans commit
 
@@ -163,3 +170,88 @@ class MeView(MethodView):
 
         db.session.commit()
         return user.to_dict()
+
+    @blp.response(200, MessageSchema, description="Compte supprimé.")
+    def delete(self):
+        """
+        Droit à l'effacement (RGPD Art. 17).
+
+        Supprime le compte utilisateur. Si l'utilisateur est le dernier
+        admin de sa Company, supprime également la Company et toutes ses données
+        (formations, salles, réservations) par cascade SQLAlchemy.
+        """
+        user = current_user()
+        company = user.company
+        is_last_admin = (
+            user.role == "admin"
+            and not User.query.filter(
+                User.company_id == company.id,
+                User.role == "admin",
+                User.id != user.id,
+            ).first()
+        )
+        if is_last_admin:
+            db.session.delete(company)  # cascade → supprime User aussi
+        else:
+            db.session.delete(user)
+        db.session.commit()
+        return {"message": "Compte supprimé conformément au droit à l'effacement."}
+
+
+@blp.route("/me/export")
+class MeExportView(MethodView):
+    """Export des données personnelles (RGPD Art. 20 — portabilité)."""
+
+    decorators = [jwt_required()]
+
+    def get(self):
+        """Retourne toutes les données personnelles de l'utilisateur (JSON)."""
+        from flask import jsonify
+        from app.models import Booking
+        user = current_user()
+        bookings = Booking.query.filter_by(requested_by_id=user.id).all()
+        data = {
+            "user": user.to_dict(),
+            "company": user.company.to_dict(),
+            "bookings": [b.to_dict() for b in bookings],
+        }
+        return jsonify(data)
+
+
+@blp.route("/accept-invite")
+class AcceptInviteView(MethodView):
+    """Finalise la création de compte suite à une invitation."""
+
+    @blp.doc(security=[])
+    @blp.arguments(AcceptInviteSchema, location="json")
+    @blp.response(201, TokenResponseSchema)
+    def post(self, args: dict):
+        """Crée un compte membre via un token d'invitation."""
+        try:
+            claims = decode_token(args["token"])
+        except Exception:
+            abort(400, message="Lien d'invitation invalide ou expiré.")
+
+        if claims.get("invite") is not True:
+            abort(400, message="Token non valide pour une invitation.")
+
+        invite_email = claims.get("invite_email")
+        company_id = claims.get("company_id")
+        invite_role = claims.get("invite_role", "member")
+
+        if User.query.filter_by(email=invite_email).first():
+            abort(409, message="Un compte existe déjà avec cet email.")
+
+        company = db.get_or_404(Company, company_id)
+        user = User(
+            email=invite_email,
+            first_name=args["first_name"],
+            last_name=args["last_name"],
+            phone=args["phone"],
+            role=invite_role,
+            company_id=company.id,
+        )
+        user.set_password(args["password"])
+        db.session.add(user)
+        db.session.commit()
+        return _build_token_response(user)

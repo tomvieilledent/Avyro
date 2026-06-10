@@ -114,6 +114,22 @@
           </form>
         </section>
 
+        <!-- Section invitation : POST /api/companies/me/invite
+             Visible uniquement aux admins -->
+        <section class="card mb-6" id="invite-section">
+          <h2 class="text-lg font-semibold">Inviter un membre</h2>
+          <p class="mt-1 text-sm text-gray-500">Envoyez un lien d'invitation par email (valable 7 jours).</p>
+          <form id="invite-form" class="mt-4 flex gap-2">
+            <input class="input flex-1" name="email" type="email" placeholder="Email du membre à inviter" required />
+            <select class="input" name="role" style="flex:0 0 auto;width:auto;">
+              <option value="member">Membre</option>
+              <option value="admin">Admin</option>
+            </select>
+            <button class="btn-primary" type="submit" style="flex:0 0 auto;">Inviter</button>
+          </form>
+          <p id="invite-msg" class="hidden text-sm mt-2"></p>
+        </section>
+
         <!-- Section structure : PATCH /api/companies/me
              Visible uniquement aux admins (supprimée du DOM par profile.js si role != admin) -->
         <section class="card" id="company-section">
@@ -131,6 +147,16 @@
             <p id="company-msg" class="hidden text-sm sm:col-span-2"></p>
             <div class="sm:col-span-2"><button class="btn-primary" type="submit">Enregistrer</button></div>
           </form>
+        </section>
+        <!-- Section RGPD -->
+        <section class="card mt-6" style="border-color:#fca5a5;">
+          <h2 class="text-lg font-semibold">Données personnelles (RGPD)</h2>
+          <p class="mt-1 text-sm text-gray-500">Conformément au Règlement Général sur la Protection des Données.</p>
+          <div class="mt-4 flex flex-wrap gap-3">
+            <a id="btn-export" href="#" class="hbtn" style="border-color:#1d4ed8;color:#1d4ed8;background:#eff6ff;text-decoration:none;">⬇ Exporter mes données</a>
+            <button id="btn-delete" class="hbtn" style="border-color:#ef4444;color:#ef4444;">Supprimer mon compte</button>
+          </div>
+          <p id="rgpd-msg" class="hidden text-sm mt-2"></p>
         </section>
       </div>
     </main>

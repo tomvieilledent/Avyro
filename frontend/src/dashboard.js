@@ -66,6 +66,60 @@ function resolvePostalCode(cp) {
   return CP_LOOKUP[cp] || CP_LOOKUP[cp.slice(0, 2)] || null;
 }
 
+// ── Recherche d'adresse (Nominatim / OpenStreetMap) ───────────────────────────
+let _addrGeo = { lat: null, lng: null };
+let _addrSearchTimer = null;
+
+function initAddrSearch() {
+  const searchEl = document.getElementById("f-addr-search");
+  const resultsEl = document.getElementById("f-addr-results");
+  if (!searchEl || !resultsEl) return;
+
+  searchEl.addEventListener("input", () => {
+    clearTimeout(_addrSearchTimer);
+    const q = searchEl.value.trim();
+    if (q.length < 5) { resultsEl.style.display = "none"; return; }
+    _addrSearchTimer = setTimeout(async () => {
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&countrycodes=fr&limit=5`;
+        const res = await fetch(url, { headers: { "Accept-Language": "fr" } });
+        const data = await res.json();
+        if (!data.length) { resultsEl.style.display = "none"; return; }
+        resultsEl.innerHTML = data.map((item, i) =>
+          `<div data-idx="${i}" style="padding:0.6rem 0.875rem;cursor:pointer;border-bottom:1px solid #f1f5f9;font-size:0.8125rem;line-height:1.4;" onmousedown="event.preventDefault()">
+            ${item.display_name}
+          </div>`
+        ).join("");
+        resultsEl._data = data;
+        resultsEl.style.display = "block";
+
+        resultsEl.querySelectorAll("[data-idx]").forEach(el => {
+          el.addEventListener("click", () => {
+            const item = resultsEl._data[+el.dataset.idx];
+            const a = item.address || {};
+            const line1 = [a.house_number, a.road].filter(Boolean).join(" ");
+            const cp = a.postcode || "";
+            const city = a.city || a.town || a.village || a.municipality || "";
+            document.getElementById("f-addr-line1").value = line1;
+            document.getElementById("f-cp").value = cp;
+            document.getElementById("f-city").value = city;
+            _addrGeo = { lat: parseFloat(item.lat), lng: parseFloat(item.lon) };
+            searchEl.value = "";
+            resultsEl.style.display = "none";
+          });
+        });
+      } catch (_) { resultsEl.style.display = "none"; }
+    }, 400);
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!searchEl.contains(e.target) && !resultsEl.contains(e.target))
+      resultsEl.style.display = "none";
+  });
+}
+
+initAddrSearch();
+
 const _urlParams = new URLSearchParams(location.search);
 const isGuest = _urlParams.get('guest') === '1';
 const _modeParam = _urlParams.get('mode');
@@ -84,6 +138,13 @@ const user = Avyro.currentUser();
 document.getElementById("who").textContent = user
   ? `${user.full_name}`
   : "";
+
+let companyTags = [];
+if (user) {
+  Avyro.api("/companies/me").then(c => {
+    companyTags = c.tags || [];
+  }).catch(() => {});
+}
 
 document.getElementById("logout").addEventListener("click", () => {
   Avyro.clearSession();
@@ -155,6 +216,12 @@ const apiBase = () => currentMode === "room" ? "/rooms" : "/trainings";
 let geoState = { active: false, lat: null, lng: null };
 
 function requestGeo() {
+  if (geoState.active) {
+    geoState = { active: false, lat: null, lng: null };
+    _updateGeoUI();
+    loaders.catalog();
+    return;
+  }
   if (!navigator.geolocation) {
     showToast("Géolocalisation non supportée par ce navigateur.", "error");
     return;
@@ -178,26 +245,14 @@ function requestGeo() {
   );
 }
 
-function resetGeo() {
-  geoState = { active: false, lat: null, lng: null };
-  _updateGeoUI();
-  loaders.catalog();
-}
-
 function _updateGeoUI() {
-  const btn    = document.getElementById("geo-btn");
-  const status = document.getElementById("geo-status");
-  const stTxt  = document.getElementById("geo-status-text");
-  const radius = document.getElementById("geo-radius")?.value || "25";
+  const btn = document.getElementById("geo-btn");
   if (geoState.active) {
     btn.innerHTML = `<svg fill="currentColor" viewBox="0 0 24 24" style="width:14px;height:14px;flex-shrink:0"><circle cx="12" cy="12" r="3"/><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/></svg> Position active`;
     btn.classList.add("active");
-    if (status) status.style.display = "flex";
-    if (stTxt)  stTxt.textContent = `Résultats dans un rayon de ${radius} km autour de vous.`;
   } else {
     btn.innerHTML = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:14px;height:14px;flex-shrink:0"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="2 2"/></svg> Autour de moi`;
     btn.classList.remove("active");
-    if (status) status.style.display = "none";
   }
 }
 
@@ -263,6 +318,16 @@ function applyMode() {
     btn.onclick = () => switchMode(btn.dataset.mode);
   });
 
+  // Tags : pertinents uniquement pour les formations
+  const tagFilterEl = document.getElementById("tag-filter");
+  if (tagFilterEl) tagFilterEl.style.display = isRoom ? "none" : "";
+  const fTagsInput = document.getElementById("f-tags");
+  if (fTagsInput) fTagsInput.style.display = isRoom ? "none" : "";
+
+  // "À distance uniquement" : sans objet pour une salle physique
+  const fRemoteLabel = document.getElementById("f-remote")?.closest("label");
+  if (fRemoteLabel) fRemoteLabel.style.display = isRoom ? "none" : "";
+
   if (isGuest) {
     document.getElementById('guest-actions').style.display = 'flex';
     document.getElementById('auth-actions').style.display = 'none';
@@ -318,7 +383,7 @@ const STATE_STYLE = {
  * @param {boolean} owner    - true si c'est la propre formation de l'utilisateur
  * @returns {HTMLElement|null} - null si la formation est terminée (ne pas l'afficher)
  */
-function trainingCard(t, { canBook, owner } = {}) {
+function trainingCard(t, { canBook, owner, catalogOwner } = {}) {
   const state = trainingState(t);
   if (state === "ended") return null;
 
@@ -327,7 +392,11 @@ function trainingCard(t, { canBook, owner } = {}) {
     "card flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between";
 
   let action;
-  if (owner) {
+  if (catalogOwner) {
+    // Catalogue : propre offre → badge neutre, pas de réservation possible
+    if (state !== "open") el.className += ` ${STATE_STYLE[state].card}`;
+    action = `<span class="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-xs text-blue-600 font-medium">Votre offre</span>`;
+  } else if (owner) {
     // Onglet "Mes offres" : boutons Éditer / Supprimer
     if (state !== "open") el.className += ` ${STATE_STYLE[state].card}`;
     action = `<div class="flex shrink-0 gap-2">
@@ -343,29 +412,60 @@ function trainingCard(t, { canBook, owner } = {}) {
            </div>`
         : `<span class="shrink-0 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600">${t.status}</span>`;
   } else {
-    // Formation complète ou en cours : badge coloré
+    // Offre complète ou en cours : badge coloré
     const s = STATE_STYLE[state];
     el.className += ` ${s.card}`;
-    action = `<span class="shrink-0 rounded-full ${s.badge} px-3 py-1 text-xs font-medium">${s.label}</span>`;
+    const label = (state === "full" && t.kind === "room") ? "Occupée" : s.label;
+    action = `<span class="shrink-0 rounded-full ${s.badge} px-3 py-1 text-xs font-medium">${label}</span>`;
   }
 
-  const distBadge = t.distance_km != null
-    ? `<span class="dist-badge">📍 ${t.distance_km} km</span>`
+  const isRoom = t.kind === "room";
+  const greenBadge = (txt) => `<span style="flex-shrink:0;background:#f0fdf4;color:#16a34a;border-radius:9999px;font-size:0.65rem;font-weight:600;padding:2px 8px;">${txt}</span>`;
+  const distBadge = "";
+  // Badge affiché sur la même ligne que le titre (flex-shrink:0 = jamais repoussé)
+  const inlineBadge = t.is_remote
+    ? greenBadge("À distance")
+    : t.distance_km != null ? greenBadge(`📍 ${t.distance_km} km`) : "";
+  // Tags affichés en dessous
+  const tagBadges = !isRoom
+    ? (t.tags || []).map(tag =>
+        `<span style="background:#eff6ff;color:#1d4ed8;border-radius:9999px;font-size:0.65rem;font-weight:600;padding:2px 8px;">${tag}</span>`
+      ).join("")
     : "";
+
+  // Ligne "places" différente selon le type
+  const placesLine = isRoom
+    ? `<div><span class="text-gray-400 font-medium">Capacité</span> · <b>${t.shared_seats}</b> personne(s) · ${t.price_per_seat} €/résa</div>`
+    : `<div><span class="text-gray-400 font-medium">Places</span> · <b>${t.available_seats}</b>/${t.shared_seats} · ${t.price_per_seat} €/place</div>`;
+
+  // Barre de remplissage uniquement pour les formations
+  const fillBar = !isRoom ? (() => {
+    const fillPct = t.shared_seats > 0 ? Math.round((t.booked_seats / t.shared_seats) * 100) : 0;
+    const fillColor = fillPct >= 90 ? "#ef4444" : fillPct >= 60 ? "#f59e0b" : "#22c55e";
+    return `<div style="margin-top:0.5rem;display:flex;align-items:center;gap:0.5rem;">
+      <div style="flex:1;height:5px;background:#e5e7eb;border-radius:9999px;overflow:hidden;">
+        <div style="height:100%;width:${fillPct}%;background:${fillColor};border-radius:9999px;transition:width 0.3s;"></div>
+      </div>
+      <span style="font-size:0.65rem;color:#6b7280;flex-shrink:0;">${fillPct}% occupé</span>
+    </div>`;
+  })() : "";
+
   el.innerHTML = `
     <div class="min-w-0 flex-1">
-      <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
-        <h3 class="truncate font-semibold">${t.title}</h3>
-        ${distBadge}
+      <div style="display:flex;align-items:center;gap:0.5rem;min-width:0;">
+        <h3 class="truncate font-semibold" style="flex:1;min-width:0;">${t.title}</h3>
+        ${inlineBadge}
       </div>
-      <p class="mt-0.5 truncate text-sm text-gray-500">${t.provider_name}</p>
+      ${tagBadges ? `<div style="display:flex;flex-wrap:wrap;gap:0.25rem;margin-top:0.25rem;">${tagBadges}</div>` : ""}
+      <p class="mt-0.5 truncate text-sm text-gray-500"><a href="company.html?id=${t.provider_id}" style="color:inherit;text-decoration:underline dotted;">${t.provider_name}</a></p>
       <p class="mt-2 line-clamp-2 text-sm text-gray-600">${t.description || ""}</p>
       <dl class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-700">
         <div><span class="text-gray-400 font-medium">Date</span> · ${fmtDate(t.starts_at)}</div>
-        <div><span class="text-gray-400 font-medium">Lieu</span> · ${t.is_remote ? "À distance" : t.location || "—"}</div>
-        <div><span class="text-gray-400 font-medium">Places</span> · <b>${t.available_seats}</b> disponibles · ${t.price_per_seat} €/place</div>
+        <div><span class="text-gray-400 font-medium">Lieu</span> · ${t.location || "—"}</div>
+        ${placesLine}
         <div><span class="text-gray-400 font-medium">Contact</span> · ${t.contact_phone}</div>
       </dl>
+      ${fillBar}
     </div>
     ${action}`;
 
@@ -394,18 +494,72 @@ async function deleteTraining(t) {
 
 /** Crée une demande de réservation (POST /api/bookings). */
 async function book(t) {
-  const seats = await promptSeats(t);
-  if (!seats) return;
+  let seats, note;
+  if (currentMode === "room") {
+    // Salle louée à l'unité : réservation de la totalité des places
+    const result = await promptRoomNote(t);
+    if (!result) return;
+    seats = t.available_seats;
+    note = result.note;
+  } else {
+    const result = await promptSeats(t);
+    if (!result) return;
+    ({ seats, note } = result);
+  }
   try {
     const bookBody = currentMode === "room"
-      ? { room_id: t.id, seats }
-      : { training_id: t.id, seats };
+      ? { room_id: t.id, seats, note }
+      : { training_id: t.id, seats, note };
     await Avyro.api("/bookings", { method: "POST", body: bookBody });
     showToast("Demande envoyée avec succès.");
     loaders.catalog();
+    refreshBadges();
   } catch (e) {
     showToast(e.data?.message || "Erreur lors de la réservation.", "error");
   }
+}
+
+/** Modale de confirmation pour une room (location à l'unité). */
+function promptRoomNote(t) {
+  return new Promise((resolve) => {
+    const overlay   = document.getElementById("book-modal");
+    const titleEl   = document.getElementById("book-modal-title");
+    const descEl    = document.getElementById("book-modal-desc");
+    const seatsInput = document.getElementById("book-seats-input");
+    const noteInput = document.getElementById("book-note-input");
+    const form      = document.getElementById("book-modal-form");
+    const cancelBtn = document.getElementById("book-modal-cancel");
+
+    titleEl.textContent = t.title;
+    descEl.textContent  = `Salle de ${t.shared_seats} personne(s) — location à l'unité · ${t.price_per_seat} €`;
+    if (seatsInput) seatsInput.style.display = "none";
+    if (noteInput) noteInput.value = "";
+    overlay.classList.replace("hidden", "flex");
+    setTimeout(() => noteInput?.focus(), 50);
+
+    function cleanup() {
+      overlay.classList.replace("flex", "hidden");
+      if (seatsInput) seatsInput.style.display = "";
+      form.removeEventListener("submit", onSubmit);
+      cancelBtn.removeEventListener("click", onCancel);
+      overlay.removeEventListener("click", onOverlay);
+      document.removeEventListener("keydown", onKey);
+    }
+    function onSubmit(e) {
+      e.preventDefault();
+      const note = noteInput ? noteInput.value.trim() || null : null;
+      cleanup();
+      resolve({ note });
+    }
+    function onCancel()    { cleanup(); resolve(null); }
+    function onOverlay(e)  { if (e.target === overlay) onCancel(); }
+    function onKey(e)      { if (e.key === "Escape") onCancel(); }
+
+    form.addEventListener("submit", onSubmit);
+    cancelBtn.addEventListener("click", onCancel);
+    overlay.addEventListener("click", onOverlay);
+    document.addEventListener("keydown", onKey);
+  });
 }
 
 /** Ouvre la modale de saisie du nombre de places, retourne Promise<number|null>. */
@@ -415,6 +569,7 @@ function promptSeats(t) {
     const titleEl  = document.getElementById("book-modal-title");
     const descEl   = document.getElementById("book-modal-desc");
     const input    = document.getElementById("book-seats-input");
+    const noteInput = document.getElementById("book-note-input");
     const form     = document.getElementById("book-modal-form");
     const cancelBtn = document.getElementById("book-modal-cancel");
 
@@ -422,6 +577,7 @@ function promptSeats(t) {
     descEl.textContent  = MODE.bookPrompt(t.available_seats);
     input.value = "1";
     input.max   = String(t.available_seats);
+    if (noteInput) noteInput.value = "";
     overlay.classList.replace("hidden", "flex");
     setTimeout(() => input.focus(), 50);
 
@@ -435,8 +591,9 @@ function promptSeats(t) {
     function onSubmit(e) {
       e.preventDefault();
       const v = parseInt(input.value, 10);
+      const note = noteInput ? noteInput.value.trim() || null : null;
       cleanup();
-      resolve(v > 0 ? v : null);
+      resolve(v > 0 ? { seats: v, note } : null);
     }
     function onCancel()  { cleanup(); resolve(null); }
     function onOverlay(e) { if (e.target === overlay) onCancel(); }
@@ -472,10 +629,22 @@ const loaders = {
   async catalog() {
     const c = document.getElementById("catalog-list");
     c.innerHTML = "";
-    const q      = document.getElementById("search").value;
-    const radius = document.getElementById("geo-radius")?.value || "25";
+    const q         = document.getElementById("search").value;
+    const radius    = document.getElementById("geo-radius")?.value || "25";
+    const tag       = document.getElementById("tag-filter")?.value || "";
+    const dateFrom  = document.getElementById("f-date-from")?.value || "";
+    const dateTo    = document.getElementById("f-date-to")?.value || "";
+    const priceMax  = document.getElementById("f-price-max")?.value || "";
+    const seatsMin  = document.getElementById("f-seats-min")?.value || "";
+    const remoteOnly = document.getElementById("f-remote")?.checked || false;
     const params = new URLSearchParams();
     if (q) params.set("q", q);
+    if (tag) params.set("tag", tag);
+    if (dateFrom) params.set("date_from", dateFrom);
+    if (dateTo) params.set("date_to", dateTo);
+    if (priceMax) params.set("price_max", priceMax);
+    if (seatsMin) params.set("seats_min", seatsMin);
+    if (remoteOnly) params.set("remote_only", "true");
     if (geoState.active && geoState.lat != null) {
       params.set("lat", String(geoState.lat));
       params.set("lng", String(geoState.lng));
@@ -483,14 +652,27 @@ const loaders = {
     }
     const qs   = params.toString();
     const list = await Avyro.api(`${apiBase()}${qs ? "?" + qs : ""}`);
-    list
-      .filter((t) => !user || t.provider_id !== user.company_id)
-      .forEach((t) => {
-        const card = trainingCard(t, { canBook: !isGuest });
-        if (card) c.appendChild(card);
-      });
+    _catalogItems = list;
+
+    // Peuple le filtre avec les tags présents dans les résultats
+    if (!tag) {
+      const tagFilterEl = document.getElementById("tag-filter");
+      if (tagFilterEl) {
+        const allTags = [...new Set(list.flatMap(t => t.tags || []))].sort();
+        const current = tagFilterEl.value;
+        tagFilterEl.innerHTML = `<option value="">Tous les tags</option>` +
+          allTags.map(t => `<option value="${t}"${t === current ? " selected" : ""}>${t}</option>`).join("");
+      }
+    }
+
+    _catalogItems.forEach((t) => {
+      const isOwner = user && t.provider_id === user.company_id;
+      const card = trainingCard(t, { canBook: !isGuest && !isOwner, catalogOwner: isOwner });
+      if (card) c.appendChild(card);
+    });
     if (!c.children.length)
       c.innerHTML = `<p class="text-sm text-gray-500">${MODE.catalogEmpty}</p>`;
+    if (_catalogView === "calendar") renderCalendar();
   },
 
   /** Onglet 2 : Mes offres — formations/salles publiées par l'utilisateur. */
@@ -554,7 +736,7 @@ const loaders = {
                <button class="btn-ghost" data-id="${b.id}" data-s="cancelled">Refuser</button>
              </div>`
           : `<span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs">${b.status}</span>`;
-      el.innerHTML = `<div><b>${b.company_name}</b> · ${b.training_title} — ${b.seats} place(s)</div>${actions}`;
+      el.innerHTML = `<div><b>${b.company_name}</b> · ${b.training_title} — ${b.seats} place(s)${b.note ? `<br><span class="text-xs text-gray-400 italic">"${b.note}"</span>` : ""}</div>${actions}`;
       c.appendChild(el);
     });
     // Délégation d'événements sur les boutons Confirmer / Refuser
@@ -566,6 +748,7 @@ const loaders = {
             body: { status: btn.dataset.s },
           });
           loaders.incoming();
+          refreshBadges();
         } catch (e) {
           alert(e.data?.message || "Erreur");
         }
@@ -591,12 +774,22 @@ const loaders = {
             </tr>`
         )
         .join("");
+      const csvRows = [["Structure","Places","Contact","Email"]].concat(
+        (r.attendees || []).map(a => [a.company_name, a.seats, a.contact_name, a.contact_email])
+      );
+      const csvContent = csvRows.map(row => row.map(v => `"${String(v || "").replace(/"/g, '""')}"`).join(",")).join("\n");
+      const csvB64 = `data:text/csv;charset=utf-8,${encodeURIComponent(csvContent)}`;
+      const safeName = (r.training_title || r.room_title || "rapport").replace(/[^a-z0-9]/gi, "_");
+
       const el = document.createElement("div");
       el.className = "card";
       el.innerHTML = `
         <div class="flex flex-wrap items-baseline justify-between gap-2">
           <h3 class="font-semibold">${r.training_title || r.room_title}</h3>
-          <span class="text-sm text-gray-500">Début : ${fmtDate(r.starts_at)}</span>
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <span class="text-sm text-gray-500">Début : ${fmtDate(r.starts_at)}</span>
+            <a href="${csvB64}" download="${safeName}.csv" class="btn-ghost" style="font-size:0.75rem;padding:4px 10px;">⬇ CSV</a>
+          </div>
         </div>
         <p class="mt-1 text-sm text-gray-600"><b>${r.total_seats}</b> inscrit(s) confirmé(s)</p>
         ${
@@ -624,6 +817,33 @@ const loaders = {
 document.getElementById("search").addEventListener("input", () => {
   clearTimeout(window._t);
   window._t = setTimeout(loaders.catalog, 300);
+});
+
+/** Toggle panneau de filtres avancés. */
+function toggleAdvanced() {
+  const panel = document.getElementById("advanced-filters");
+  const isOpen = panel.style.display !== "none";
+  panel.style.display = isOpen ? "none" : "flex";
+  document.getElementById("toggle-filters").textContent = isOpen ? "Filtres ▾" : "Filtres ▴";
+}
+function resetAdvanced() {
+  ["f-date-from","f-date-to","f-price-max","f-seats-min"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  const remote = document.getElementById("f-remote");
+  if (remote) remote.checked = false;
+  if (activeTab === "catalog") loaders.catalog();
+}
+["f-date-from","f-date-to","f-price-max","f-seats-min","f-remote"].forEach(id => {
+  document.getElementById(id)?.addEventListener("change", () => {
+    if (activeTab === "catalog") loaders.catalog();
+  });
+});
+
+/** Recharge le catalogue quand le tag change. */
+document.getElementById("tag-filter")?.addEventListener("change", () => {
+  if (activeTab === "catalog") loaders.catalog();
 });
 
 /** Recharge le catalogue quand le rayon change (si géo active). */
@@ -654,17 +874,34 @@ function openModal(training) {
   document.getElementById("f-title").placeholder = MODE.titlePlaceholder;
   document.getElementById("f-seats-label").firstChild.nodeValue = MODE.seatsLabel;
   document.getElementById("training-error").classList.add("hidden");
+  _addrGeo = { lat: null, lng: null };
   form.reset();
   if (isEdit) {
     form.title.value = training.title;
     form.description.value = training.description || "";
-    const cpMatch = (!training.is_remote && training.location || "").match(/^(\d{5})/);
-    form.postal_code.value = cpMatch ? cpMatch[1] : "";
     form.contact_phone.value = training.contact_phone || "";
     form.starts_at.value = training.starts_at.slice(0, 16);
     form.ends_at.value = training.ends_at.slice(0, 16);
     form.shared_seats.value = training.shared_seats;
     form.price_per_seat.value = training.price_per_seat;
+    if (form.tags) form.tags.value = (training.tags || []).join(", ");
+    if (!training.is_remote && training.location) {
+      // Tente de parser "line1[ — line2], CP Ville"
+      const loc = training.location;
+      const cpCityMatch = loc.match(/,?\s*(\d{4,5})\s+(.+)$/);
+      if (cpCityMatch) {
+        const before = loc.slice(0, loc.length - cpCityMatch[0].length);
+        const parts = before.split(" — ");
+        form.addr_line1.value = parts[0].trim();
+        form.postal_code.value = cpCityMatch[1];
+        form.city.value = cpCityMatch[2].trim();
+      } else {
+        form.addr_line1.value = loc;
+      }
+      _addrGeo = { lat: training.latitude || null, lng: training.longitude || null };
+    }
+  } else {
+    if (form.tags) form.tags.value = companyTags.join(", ");
   }
   modal.classList.replace("hidden", "flex");
 }
@@ -681,20 +918,24 @@ form.addEventListener("submit", async (e) => {
   const body = Object.fromEntries(f.entries());
   body.shared_seats = parseInt(body.shared_seats, 10);
   body.price_per_seat = parseFloat(body.price_per_seat || "0");
-  // Résolution CP → localisation + coordonnées
-  const cp = (body.postal_code || "").trim();
-  delete body.postal_code;
-  if (!cp) {
+  body.tags = (body.tags || "").split(",").map(t => t.trim()).filter(Boolean);
+  // Construction de l'adresse
+  const line1 = (body.addr_line1 || "").trim();
+
+  const cp    = (body.postal_code || "").trim();
+  const city  = (body.city || "").trim();
+  delete body.addr_line1; delete body.postal_code; delete body.city;
+  if (!line1 && !cp) {
     body.is_remote = true;
     body.location = "À distance";
     body.latitude = null;
     body.longitude = null;
   } else {
-    const geo = resolvePostalCode(cp);
     body.is_remote = false;
-    body.location = geo ? `${cp} ${geo.city}` : cp;
-    body.latitude = geo ? geo.lat : null;
-    body.longitude = geo ? geo.lng : null;
+    const addrParts = line1;
+    body.location = [addrParts, cp && city ? `${cp} ${city}` : cp || city].filter(Boolean).join(", ");
+    body.latitude  = _addrGeo.lat;
+    body.longitude = _addrGeo.lng;
   }
   try {
     if (editingId) {
@@ -716,5 +957,94 @@ form.addEventListener("submit", async (e) => {
 
 // ── Initialisation ────────────────────────────────────────────────────────────
 
+// ── Vue calendrier ────────────────────────────────────────────────────────────
+
+let _catalogView = "list";
+let _calendarYear = new Date().getFullYear();
+let _calendarMonth = new Date().getMonth(); // 0-indexed
+let _catalogItems = [];
+
+function setView(v) {
+  _catalogView = v;
+  document.getElementById("view-list").classList.toggle("active", v === "list");
+  document.getElementById("view-cal").classList.toggle("active", v === "calendar");
+  document.getElementById("catalog-list").style.display = v === "list" ? "" : "none";
+  document.getElementById("catalog-calendar").style.display = v === "calendar" ? "" : "none";
+  if (v === "calendar") renderCalendar();
+}
+
+function renderCalendar() {
+  const cal = document.getElementById("catalog-calendar");
+  const year = _calendarYear, month = _calendarMonth;
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const monthName = new Date(year, month, 1).toLocaleString("fr-FR", { month: "long", year: "numeric" });
+
+  const itemsByDay = {};
+  _catalogItems.forEach(t => {
+    const d = new Date(t.starts_at);
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      const key = d.getDate();
+      if (!itemsByDay[key]) itemsByDay[key] = [];
+      itemsByDay[key].push(t);
+    }
+  });
+
+  let html = `<div style="border:1px solid #e2e8f0;border-radius:12px;padding:1rem;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+    <button class="geo-btn" onclick="_calendarMonth--;if(_calendarMonth<0){_calendarMonth=11;_calendarYear--;}renderCalendar();">‹</button>
+    <span style="font-weight:600;text-transform:capitalize;">${monthName}</span>
+    <button class="geo-btn" onclick="_calendarMonth++;if(_calendarMonth>11){_calendarMonth=0;_calendarYear++;}renderCalendar();">›</button>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;font-size:0.75rem;">`;
+  ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"].forEach(d => {
+    html += `<div style="padding:4px;font-weight:600;color:#64748b;">${d}</div>`;
+  });
+  const start = (firstDay === 0 ? 6 : firstDay - 1);
+  for (let i = 0; i < start; i++) html += `<div></div>`;
+  for (let day = 1; day <= daysInMonth; day++) {
+    const items = itemsByDay[day] || [];
+    const today = new Date(); const isToday = today.getDate()===day && today.getMonth()===month && today.getFullYear()===year;
+    const dotColor = items.length > 0 ? "#1d4ed8" : "transparent";
+    html += `<div style="padding:4px 2px;border-radius:6px;cursor:${items.length?"pointer":"default"};background:${isToday?"#eff6ff":"transparent"};border:1px solid ${isToday?"#bfdbfe":"transparent"};"
+      ${items.length ? `onclick="_showCalDay(${year},${month},${day})"` : ""}>
+      <div style="font-size:0.8125rem;font-weight:${isToday?'700':'400'};">${day}</div>
+      <div style="display:flex;justify-content:center;gap:2px;flex-wrap:wrap;min-height:8px;">
+        ${items.slice(0,3).map(()=>`<span style="width:6px;height:6px;border-radius:50%;background:${dotColor};display:inline-block;"></span>`).join("")}
+      </div>
+    </div>`;
+  }
+  html += `</div><div id="cal-day-detail" style="margin-top:1rem;"></div></div>`;
+  cal.innerHTML = html;
+}
+
+function _showCalDay(year, month, day) {
+  const items = _catalogItems.filter(t => {
+    const d = new Date(t.starts_at);
+    return d.getFullYear() === year && d.getMonth() === month && d.getDate() === day;
+  });
+  const detail = document.getElementById("cal-day-detail");
+  if (!detail) return;
+  detail.innerHTML = `<p style="font-weight:600;margin-bottom:0.5rem;">${day} ${new Date(year,month,day).toLocaleString("fr-FR",{month:"long"})}</p>` +
+    items.map(t => `<div class="card" style="margin-bottom:0.5rem;padding:0.75rem;">
+      <b>${t.title}</b> — ${t.provider_name}<br>
+      <span class="text-sm text-gray-500">${t.available_seats} place(s) · ${t.price_per_seat} €</span>
+    </div>`).join("");
+}
+
+async function refreshBadges() {
+  if (isGuest) return;
+  try {
+    const counts = await Avyro.api("/bookings/counts");
+    const key = currentMode === "room" ? "pending_incoming_room" : "pending_incoming_training";
+    const n = counts[key] || 0;
+    const badge = document.getElementById("badge-incoming");
+    if (!badge) return;
+    if (n > 0) { badge.textContent = n; badge.style.display = ""; }
+    else { badge.style.display = "none"; }
+  } catch (_) { /* silencieux */ }
+}
+
 /** Charge le catalogue au démarrage (onglet par défaut). */
 activate("catalog");
+refreshBadges();

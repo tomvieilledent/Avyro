@@ -1,4 +1,6 @@
 """Modèle Room — salle de réunion mutualisée (Avyro Room)."""
+import json
+
 from sqlalchemy import select, func
 from sqlalchemy.ext.hybrid import hybrid_property
 
@@ -32,6 +34,7 @@ class Room(TimestampMixin, db.Model):
     shared_seats = db.Column(db.Integer, nullable=False, default=1)
     price_per_seat = db.Column(db.Numeric(10, 2), nullable=False, default=0)
     status = db.Column(db.String(20), nullable=False, default="open", index=True)
+    _tags = db.Column("tags", db.Text, nullable=True)
 
     provider_id = db.Column(
         db.Integer, db.ForeignKey("companies.id"), nullable=False, index=True
@@ -42,6 +45,17 @@ class Room(TimestampMixin, db.Model):
         back_populates="room",
         cascade="all, delete-orphan",
     )
+
+    @property
+    def tags(self) -> list:
+        try:
+            return json.loads(self._tags) if self._tags else []
+        except (ValueError, TypeError):
+            return []
+
+    @tags.setter
+    def tags(self, value: list | None):
+        self._tags = json.dumps(value) if value else None
 
     def __repr__(self) -> str:
         return f"<Room id={self.id} title={self.title!r} status={self.status!r}>"
@@ -98,6 +112,7 @@ class Room(TimestampMixin, db.Model):
             "booked_seats": self.booked_seats,
             "available_seats": self.available_seats,
             "price_per_seat": float(self.price_per_seat),
+            "tags": self.tags,
             "status": self.status,
             "provider_id": self.provider_id,
             "provider_name": self.provider.name if self.provider else None,

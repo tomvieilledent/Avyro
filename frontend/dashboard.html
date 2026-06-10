@@ -424,7 +424,7 @@
             <button class="tab" data-tab="catalog" role="tab">Catalogue</button>
             <button class="tab" data-tab="mine" role="tab">Mes formations</button>
             <button class="tab" data-tab="bookings" role="tab">Mes réservations</button>
-            <button class="tab" data-tab="incoming" role="tab">Demandes reçues</button>
+            <button class="tab" data-tab="incoming" role="tab">Demandes reçues <span id="badge-incoming" style="display:none;background:#ef4444;color:#fff;border-radius:9999px;font-size:0.65rem;font-weight:700;padding:1px 6px;margin-left:4px;vertical-align:middle;"></span></button>
             <button class="tab" data-tab="reports" role="tab">Comptes rendus</button>
           </div>
         </div>
@@ -439,6 +439,18 @@
               </svg>
               <input id="search" class="input" placeholder="Rechercher…" />
             </div>
+            <button type="button" id="toggle-filters" class="geo-btn" onclick="toggleAdvanced()">Filtres ▾</button>
+            <select id="tag-filter" class="geo-select" title="Filtrer par tag">
+              <option value="">Tous les tags</option>
+              <option value="IT">IT</option>
+              <option value="management">Management</option>
+              <option value="RH">RH</option>
+              <option value="sécurité">Sécurité</option>
+              <option value="langues">Langues</option>
+              <option value="commercial">Commercial</option>
+              <option value="finance">Finance</option>
+              <option value="juridique">Juridique</option>
+            </select>
             <button id="geo-btn" type="button" class="geo-btn" onclick="requestGeo()">
               <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
@@ -454,13 +466,32 @@
               <option value="100">100 km</option>
             </select>
           </div>
-          <!-- Indicateur de position active -->
-          <div id="geo-status" style="display:none;" class="geo-status">
-            <svg fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/></svg>
-            <span id="geo-status-text"></span>
-            <button class="geo-reset" onclick="resetGeo()" title="Effacer la position">✕</button>
+          <!-- Filtres avancés (collapsibles) -->
+          <div id="advanced-filters" style="display:none;gap:0.625rem;flex-wrap:wrap;margin-bottom:0.625rem;" class="filter-bar">
+            <label class="text-xs text-gray-500" style="display:flex;align-items:center;gap:4px;">
+              Du <input id="f-date-from" type="date" class="geo-select" />
+            </label>
+            <label class="text-xs text-gray-500" style="display:flex;align-items:center;gap:4px;">
+              Au <input id="f-date-to" type="date" class="geo-select" />
+            </label>
+            <label class="text-xs text-gray-500" style="display:flex;align-items:center;gap:4px;">
+              Prix max (€) <input id="f-price-max" type="number" min="0" step="1" class="geo-select" style="width:80px;" />
+            </label>
+            <label class="text-xs text-gray-500" style="display:flex;align-items:center;gap:4px;">
+              Places min <input id="f-seats-min" type="number" min="1" step="1" class="geo-select" style="width:70px;" />
+            </label>
+            <label class="text-xs text-gray-500" style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+              <input id="f-remote" type="checkbox" /> À distance uniquement
+            </label>
+            <button type="button" class="geo-btn" onclick="resetAdvanced()">Réinitialiser</button>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;">
+            <button id="view-list" class="geo-btn active" onclick="setView('list')" title="Vue liste">☰ Liste</button>
+            <button id="view-cal" class="geo-btn" onclick="setView('calendar')" title="Vue calendrier">📅 Calendrier</button>
           </div>
           <div id="catalog-list" class="content-grid"></div>
+          <div id="catalog-calendar" style="display:none;"></div>
         </section>
 
         <!-- ─── Mes formations ────────────────────────────── -->
@@ -520,11 +551,15 @@
         <div class="modal-body">
           <form id="training-form" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input id="f-title" class="input sm:col-span-2" name="title" placeholder="Titre" required />
+            <input id="f-tags" class="input sm:col-span-2" name="tags" placeholder="Tags séparés par des virgules (ex: IT, management, sécurité)" />
             <textarea class="input sm:col-span-2" name="description" placeholder="Description" rows="3" style="resize:vertical;"></textarea>
-            <label class="text-xs text-gray-500 sm:col-span-2" style="display:flex;flex-direction:column;gap:4px;">
-              Code postal <span style="font-weight:400;color:#94a3b8;">(laisser vide si à distance)</span>
-              <input id="f-cp" class="input" name="postal_code" placeholder="Ex : 75008" maxlength="5" pattern="[0-9]{5}" />
-            </label>
+            <div class="sm:col-span-2" style="position:relative;">
+              <input id="f-addr-search" class="input" placeholder="Rechercher une adresse… (laisser vide si à distance)" autocomplete="off" />
+              <div id="f-addr-results" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:200;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);max-height:220px;overflow-y:auto;"></div>
+            </div>
+            <input id="f-addr-line1" class="input sm:col-span-2" name="addr_line1" placeholder="Adresse" readonly tabindex="-1" style="background:#e2e8f0;color:#64748b;cursor:default;pointer-events:none;user-select:none;" />
+            <input id="f-cp" class="input" name="postal_code" placeholder="Code postal" maxlength="10" readonly tabindex="-1" style="background:#e2e8f0;color:#64748b;cursor:default;pointer-events:none;user-select:none;" />
+            <input id="f-city" class="input" name="city" placeholder="Ville" readonly tabindex="-1" style="background:#e2e8f0;color:#64748b;cursor:default;pointer-events:none;user-select:none;" />
             <input class="input sm:col-span-2" name="contact_phone" type="tel" placeholder="Numéro de contact" required />
             <label class="text-xs text-gray-500" style="display:flex;flex-direction:column;gap:4px;">Début<input class="input" name="starts_at" type="datetime-local" required /></label>
             <label class="text-xs text-gray-500" style="display:flex;flex-direction:column;gap:4px;">Fin<input class="input" name="ends_at" type="datetime-local" required /></label>
@@ -550,7 +585,8 @@
         <div style="padding:1.5rem;">
           <p id="book-modal-desc" style="margin:0 0 1rem;font-size:0.875rem;color:#64748b;line-height:1.5;"></p>
           <form id="book-modal-form">
-            <input id="book-seats-input" class="input" type="number" name="seats" min="1" value="1" required style="margin-bottom:1.25rem;" />
+            <input id="book-seats-input" class="input" type="number" name="seats" min="1" value="1" required style="margin-bottom:0.75rem;" />
+            <textarea id="book-note-input" class="input" placeholder="Note pour le provider (optionnel)" maxlength="500" rows="3" style="resize:vertical;margin-bottom:1.25rem;"></textarea>
             <div style="display:flex;justify-content:flex-end;gap:0.5rem;">
               <button type="button" id="book-modal-cancel" class="btn-ghost">Annuler</button>
               <button type="submit" class="btn-primary">Confirmer la réservation</button>
@@ -566,7 +602,7 @@
     <!-- ══════════════════════ FOOTER ══════════════════════ -->
     <footer class="app-footer">
       <p id="mode-desc" class="footer-center"></p>
-      <span class="footer-right">© 2026 AVYRO. Tous droits réservés.</span>
+      <span class="footer-right">© 2026 AVYRO. <a href="privacy.html" style="color:inherit;text-decoration:underline dotted;opacity:0.7;">Confidentialité</a></span>
     </footer>
 
     <script src="src/api.js"></script>

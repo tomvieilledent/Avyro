@@ -22,6 +22,7 @@ class Booking(TimestampMixin, db.Model):
     status = db.Column(
         db.String(20), nullable=False, default="pending", index=True
     )
+    note = db.Column(db.Text, nullable=True)
 
     training_id = db.Column(
         db.Integer, db.ForeignKey("trainings.id"), nullable=True, index=True
@@ -66,5 +67,6 @@ class Booking(TimestampMixin, db.Model):
             "requested_by_name": (
                 self.requested_by.full_name if self.requested_by else None
             ),
+            "note": self.note,
             "created_at": self.created_at.isoformat(),
         }

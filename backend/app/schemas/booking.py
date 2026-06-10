@@ -8,6 +8,7 @@ class BookingCreateSchema(Schema):
     training_id = fields.Int(load_default=None, allow_none=True)
     room_id = fields.Int(load_default=None, allow_none=True)
     seats = fields.Int(required=True, validate=validate.Range(min=1))
+    note = fields.Str(load_default=None, allow_none=True, validate=validate.Length(max=500))
 
     @validates_schema
     def validate_one_id(self, data, **kwargs):
@@ -51,7 +52,15 @@ class BookingSchema(Schema):
     company_name = fields.Str(dump_only=True, allow_none=True)
     requested_by_id = fields.Int(dump_only=True)
     requested_by_name = fields.Str(dump_only=True, allow_none=True)
+    note = fields.Str(dump_only=True, allow_none=True)
     created_at = fields.Str(dump_only=True)
+
+
+class BookingCountsSchema(Schema):
+    """Compteurs de réservations en attente."""
+
+    pending_incoming_training = fields.Int(dump_only=True)
+    pending_incoming_room     = fields.Int(dump_only=True)
 
 
 class MessageSchema(Schema):

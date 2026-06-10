@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Politique de confidentialité — Avyro</title>
+    <link rel="icon" href="assets/mark-training.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="dist/styles.css" />
+    <style>
+      body { background: #f8fafc; font-family: Inter, sans-serif; padding: 2rem; max-width: 800px; margin: 0 auto; color: #1e293b; }
+      h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem; }
+      h2 { font-size: 1.125rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.5rem; color: #1d4ed8; }
+      p, li { font-size: 0.9375rem; line-height: 1.7; color: #374151; }
+      ul { padding-left: 1.5rem; }
+      a { color: #1d4ed8; }
+    </style>
+  </head>
+  <body>
+    <p style="margin-bottom:1.5rem;"><a href="javascript:history.back()">← Retour</a></p>
+    <h1>Politique de confidentialité</h1>
+    <p>Dernière mise à jour : juin 2026</p>
+
+    <h2>1. Responsable du traitement</h2>
+    <p>Avyro SAS — contact : privacy@avyro.app</p>
+
+    <h2>2. Données collectées</h2>
+    <ul>
+      <li><strong>Compte utilisateur</strong> : prénom, nom, email, numéro de téléphone, mot de passe haché</li>
+      <li><strong>Structure</strong> : nom de l'entreprise, type, SIRET, email de contact</li>
+      <li><strong>Activité</strong> : formations et salles publiées, réservations effectuées</li>
+    </ul>
+
+    <h2>3. Finalités du traitement</h2>
+    <ul>
+      <li>Fourniture du service de mutualisation (formations et salles)</li>
+      <li>Communication liée aux réservations (confirmations, rappels)</li>
+      <li>Sécurité et lutte contre la fraude</li>
+    </ul>
+
+    <h2>4. Base légale</h2>
+    <p>Le traitement est fondé sur l'exécution du contrat (CGU) et le consentement explicite recueilli à l'inscription.</p>
+
+    <h2>5. Durée de conservation</h2>
+    <p>Les données sont conservées pendant toute la durée d'activité du compte, puis supprimées dans un délai de 30 jours après clôture.</p>
+
+    <h2>6. Vos droits (RGPD)</h2>
+    <ul>
+      <li><strong>Accès</strong> : consultez vos données via votre profil</li>
+      <li><strong>Rectification</strong> : modifiez vos informations dans Profil → Compte</li>
+      <li><strong>Effacement</strong> : supprimez votre compte depuis Profil → Données personnelles</li>
+      <li><strong>Portabilité</strong> : exportez vos données (JSON) depuis Profil → Données personnelles</li>
+      <li><strong>Opposition</strong> : contactez privacy@avyro.app</li>
+    </ul>
+
+    <h2>7. Sécurité</h2>
+    <p>Les mots de passe sont hachés (Werkzeug/bcrypt). Les communications sont chiffrées via HTTPS. Les tokens JWT ont une durée de vie limitée (30 min pour l'access token).</p>
+
+    <h2>8. Cookies</h2>
+    <p>Avyro n'utilise pas de cookies de tracking. L'authentification repose sur le stockage local (<code>localStorage</code>) du token JWT.</p>
+
+    <h2>9. Contact</h2>
+    <p>Pour toute question relative à vos données personnelles : <a href="mailto:privacy@avyro.app">privacy@avyro.app</a></p>
+  </body>
+</html>

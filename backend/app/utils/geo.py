@@ -33,11 +33,13 @@ def apply_geo_filter(
             continue
         item_lat = item.get("latitude")
         item_lng = item.get("longitude")
-        if item_lat is not None and item_lng is not None:
-            dist = haversine_km(lat, lng, item_lat, item_lng)
-            if dist > radius_km:
-                continue
-            item["distance_km"] = round(dist, 1)
+        if item_lat is None or item_lng is None:
+            # Pas de coordonnées : impossible de calculer la distance, on exclut
+            continue
+        dist = haversine_km(lat, lng, item_lat, item_lng)
+        if dist > radius_km:
+            continue
+        item["distance_km"] = round(dist, 1)
         result.append(item)
 
     result.sort(key=lambda x: (x["distance_km"] is None, x["distance_km"] or 0))

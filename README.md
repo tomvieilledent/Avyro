@@ -113,6 +113,9 @@ Toutes les routes sont préfixées `/api`. L'authentification se fait via header
 | `POST` | `/refresh` | Renouvelle l'access token via le refresh token |
 | `GET` | `/me` | Profil de l'utilisateur connecté |
 | `PATCH` | `/me` | Mise à jour du profil (nom, email, téléphone, mot de passe) |
+| `DELETE` | `/me` | Suppression du compte (RGPD Art. 17) |
+| `GET` | `/me/export` | Export JSON des données personnelles (RGPD Art. 20) |
+| `POST` | `/accept-invite` | Création de compte via invitation |
 
 ### Companies — `/api/companies`
 
@@ -120,15 +123,21 @@ Toutes les routes sont préfixées `/api`. L'authentification se fait via header
 |---------|-------|-------------|
 | `GET` | `/me` | Infos de la structure de l'utilisateur |
 | `PATCH` | `/me` | Mise à jour (admin uniquement) |
-| `GET` | `/<id>` | Détails d'une structure |
+| `POST` | `/me/invite` | Inviter un membre par email (admin) |
+| `GET` | `/<id>` | Détails d'une structure (public) |
+| `GET` | `/<id>/offerings` | Formations et salles actives d'une structure (public) |
 
 ### Formations — `/api/trainings`
 
 | Méthode | Route | Description |
 |---------|-------|-------------|
-| `GET` | `/` | Catalogue (status=open, hors propre company) |
+| `GET` | `/` | Catalogue (status=open, hors propre company) — public |
 | `GET` | `/?mine=true` | Mes formations publiées |
 | `GET` | `/?q=terme` | Recherche (titre, lieu, description) |
+| `GET` | `/?tag=IT` | Filtre par tag |
+| `GET` | `/?date_from=&date_to=` | Filtre par plage de dates |
+| `GET` | `/?price_max=&seats_min=` | Filtre par prix max / places min |
+| `GET` | `/?remote_only=true` | Formations à distance uniquement |
 | `GET` | `/?lat=&lng=&radius=` | Filtre géographique (Haversine) |
 | `POST` | `/` | Publier une formation |
 | `PATCH` | `/<id>` | Modifier (provider uniquement) |
@@ -194,12 +203,125 @@ Le code postal saisi à la création est résolu vers une ville + coordonnées G
 
 ---
 
+## Vue calendrier du catalogue
+
+Le catalogue dispose d'un toggle **Liste / Calendrier** :
+- **Vue liste** : affichage par cartes (défaut)
+- **Vue calendrier** : grille mensuelle avec navigation mois par mois. Les jours avec des offres affichent un point bleu. Un clic sur un jour affiche le détail des offres de la journée.
+
+---
+
+## Export CSV des comptes rendus
+
+Dans l'onglet **Comptes rendus**, chaque formation/salle dispose d'un bouton **⬇ CSV** qui télécharge directement la liste des inscrits confirmés au format CSV (Structure, Places, Contact, Email). Aucun appel API supplémentaire — généré côté client depuis les données déjà chargées.
+
+---
+
+## Fiche publique entreprise
+
+La page `company.html?id=<id>` affiche le profil public d'une Company avec ses formations et salles actives.
+
+- `GET /api/companies/<id>` — informations de la Company (public, JWT optionnel)
+- `GET /api/companies/<id>/offerings` — formations et salles ouvertes (public)
+- Le nom du provider sur les cartes catalogue est un lien cliquable vers sa fiche
+
+---
+
+## Indicateur de remplissage
+
+Chaque carte du catalogue affiche une barre de progression colorée :
+- **Vert** : moins de 60% des places occupées
+- **Orange** : entre 60% et 90%
+- **Rouge** : 90% et plus (quasi complet)
+
+---
+
+## Filtres avancés du catalogue
+
+Le bouton **Filtres** dans la barre de recherche déploie un panneau de filtres avancés :
+
+| Filtre | Paramètre API | Description |
+|--------|--------------|-------------|
+| Date de début (du/au) | `date_from`, `date_to` | Plage de dates pour `starts_at` |
+| Prix max | `price_max` | Prix/place ≤ valeur |
+| Places disponibles min | `seats_min` | `available_seats` ≥ valeur |
+| À distance uniquement | `remote_only=true` | Offres distancielles uniquement |
+
+Combinables avec la recherche texte, les tags et la géolocalisation.
+
+---
+
+## Tags et catégories
+
+Les formations et salles peuvent être taguées (liste libre, ex: `["IT", "management", "sécurité"]`).
+
+- **Création/édition** : champ "Tags" dans la modale (valeurs séparées par des virgules)
+- **Filtre catalogue** : menu déroulant de filtrage dans la barre de recherche
+- **Filtre API** : `GET /api/trainings?tag=IT` ou `GET /api/rooms?tag=management`
+- Les tags sont affichés en badges bleus sur les cartes du catalogue
+
+---
+
+## Invitations membres d'équipe
+
+Un admin peut inviter des collaborateurs à rejoindre sa structure depuis la page **Profil → Inviter un membre**.
+
+- `POST /api/companies/me/invite` — génère un JWT d'invitation (7 jours) et envoie un email avec le lien
+- `POST /api/auth/accept-invite` — valide le token et crée le compte dans la même Company
+- Page dédiée `invite.html?token=<jwt>` pour finaliser l'inscription
+
+---
+
+## Note sur la réservation
+
+Lors d'une réservation, le demandeur peut ajouter une **note optionnelle** (max 500 caractères) destinée au provider. La note est :
+- Affichée dans l'onglet "Demandes reçues" du provider
+- Incluse dans l'email de notification au provider
+
+---
+
+## Badges de notifications
+
+L'onglet **Demandes reçues** affiche un badge rouge avec le nombre de réservations en attente de traitement (`GET /api/bookings/counts`). Le badge se met à jour après chaque confirmation, refus ou nouvelle réservation.
+
+---
+
+## Notifications email automatiques
+
+Des emails sont envoyés automatiquement aux parties concernées à chaque étape clé d'une réservation :
+
+| Événement | Destinataire | Sujet |
+|-----------|-------------|-------|
+| Nouvelle demande de réservation | Provider (contact ou admin) | `Nouvelle demande de réservation — {titre}` |
+| Réservation confirmée | Booker (demandeur) | `Réservation confirmée — {titre}` |
+| Réservation refusée | Booker (demandeur) | `Réservation refusée — {titre}` |
+| Annulation par le booker | Provider | `Annulation de réservation — {titre}` |
+
+En développement, les emails sont écrits dans `backend/dev_outbox.log`.
+
+---
+
 ## Maintenance automatique
 
 Le scheduler APScheduler (activé via `RUN_SCHEDULER=1`) exécute quotidiennement :
 
 1. **Rappels** — email au provider 1 jour ouvré avant le début de chaque offre, avec la liste live des inscrits confirmés
 2. **Purge** — suppression immédiate des offres dont `ends_at` est dépassé (Training et Room)
+
+---
+
+## Conformité RGPD
+
+| Droit | Implémentation |
+|-------|---------------|
+| **Consentement (Art. 7)** | Checkbox obligatoire à l'inscription + lien vers `privacy.html` |
+| **Accès (Art. 15)** | Toutes les données visibles dans le profil |
+| **Rectification (Art. 16)** | `PATCH /api/auth/me` et `PATCH /api/companies/me` |
+| **Effacement (Art. 17)** | `DELETE /api/auth/me` — supprime user (et Company si dernier admin) |
+| **Portabilité (Art. 20)** | `GET /api/auth/me/export` — téléchargement JSON depuis le profil |
+| **Information (Art. 13)** | Page `privacy.html` avec finalités, durées et contacts |
+
+La suppression d'une Company entraîne la suppression en cascade de toutes ses données (users, trainings, rooms, bookings) via SQLAlchemy.
 
 ---
 

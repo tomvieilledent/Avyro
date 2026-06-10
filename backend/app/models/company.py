@@ -1,4 +1,5 @@
 """Modèle Company — structure cliente ou prestataire sur Avyro."""
+import json
 from app.extensions import db
 from .mixins import TimestampMixin
 
@@ -19,6 +20,15 @@ class Company(TimestampMixin, db.Model):
     # Numéro SIRET (France) — optionnel pour les particuliers
     siret = db.Column(db.String(20), unique=True, nullable=True)
     contact_email = db.Column(db.String(255), nullable=True)
+    _tags = db.Column("tags", db.Text, nullable=True)
+
+    @property
+    def tags(self) -> list:
+        return json.loads(self._tags) if self._tags else []
+
+    @tags.setter
+    def tags(self, value):
+        self._tags = json.dumps(value) if value else None
 
     # Un seul admin par Company (le fondateur) ; plusieurs membres possibles
     users = db.relationship("User", back_populates="company")
@@ -43,5 +53,6 @@ class Company(TimestampMixin, db.Model):
             "kind": self.kind,
             "siret": self.siret,
             "contact_email": self.contact_email,
+            "tags": self.tags,
             "created_at": self.created_at.isoformat(),
         }

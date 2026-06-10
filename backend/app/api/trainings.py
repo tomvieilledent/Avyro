@@ -76,7 +76,21 @@ class TrainingListView(MethodView):
                 | Training.location.ilike(q)
                 | Training.description.ilike(q)
             )
+        if args.get("date_from"):
+            from datetime import datetime
+            query = query.filter(Training.starts_at >= datetime.combine(args["date_from"], datetime.min.time()))
+        if args.get("date_to"):
+            from datetime import datetime
+            query = query.filter(Training.starts_at <= datetime.combine(args["date_to"], datetime.max.time()))
+        if args.get("price_max") is not None:
+            query = query.filter(Training.price_per_seat <= args["price_max"])
+        if args.get("seats_min") is not None:
+            query = query.filter(Training.shared_seats - Training.booked_seats >= args["seats_min"])
+        if args.get("remote_only"):
+            query = query.filter(Training.is_remote == True)
         items = [t.to_dict() for t in query.order_by(Training.starts_at.asc()).all()]
+        if args.get("tag"):
+            items = [i for i in items if args["tag"] in (i.get("tags") or [])]
         if args.get("lat") is not None and args.get("lng") is not None:
             items = apply_geo_filter(items, args["lat"], args["lng"], args["radius"])
         return items
@@ -86,7 +100,11 @@ class TrainingListView(MethodView):
     def post(self, args: dict):
         """Publie une nouvelle formation."""
         user = current_user()
+        if not user.company.siret:
+            abort(403, message="Un numéro SIRET/SIREN est requis pour publier une formation. Renseignez-le dans votre profil.")
+        tags = args.pop("tags", None)
         training = Training(provider_id=user.company_id, **args)
+        training.tags = tags
         db.session.add(training)
         db.session.commit()
         return training.to_dict()
@@ -107,8 +125,11 @@ class TrainingDetailView(MethodView):
         training = db.get_or_404(Training, training_id)
         if training.provider_id != current_user().company_id:
             abort(403, message="Vous n'êtes pas le provider de cette formation.")
+        tags = args.pop("tags", None)
         for key, value in args.items():
             setattr(training, key, value)
+        if tags is not None:
+            training.tags = tags
         db.session.commit()
         return training.to_dict()
 
