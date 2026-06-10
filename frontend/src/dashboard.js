@@ -660,9 +660,6 @@ form.addEventListener("submit", async (e) => {
   const body = Object.fromEntries(f.entries());
   body.shared_seats = parseInt(body.shared_seats, 10);
   body.price_per_seat = parseFloat(body.price_per_seat || "0");
-  body.kind = MODE.kind;
-  delete body.kind;
-
   // Résolution CP → localisation + coordonnées
   const cp = (body.postal_code || "").trim();
   delete body.postal_code;

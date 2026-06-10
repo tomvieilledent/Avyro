@@ -5,12 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tableau de bord — Avyro</title>
     <link id="favicon" rel="icon" href="assets/mark-training.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="dist/styles.css" />
     <style>
       html, body { height: 100%; margin: 0; overflow: hidden; }
 
       /* ── Base ──────────────────────────────────────────── */
-      body { background: #eef6ff; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+      body { background: #eef6ff; }
       body.mode-room { background: #f8fafc; }
 
       /* ── Header ────────────────────────────────────────── */
@@ -290,9 +293,7 @@
         font-weight: 600;
       }
 
-      /* ── Section title (kept for JS compat) ──────────────── */
-      .section-title { font-size: 1rem; font-weight: 700; color: #1e3a8a; margin-bottom: 1.25rem; }
-      body.mode-room .section-title { color: #1d4ed8; }
+
 
       /* ── Reports table ──────────────────────────────────── */
       .r-table { width: 100%; text-align: left; font-size: 0.8125rem; border-collapse: collapse; }
@@ -339,7 +340,6 @@
         background: #1e3a8a;
         display: flex; align-items: center; justify-content: center;
         border-top: 1px solid rgba(255,255,255,0.08);
-        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
         font-size: 0.75rem;
         font-weight: 400;
         color: rgba(255,255,255,0.55);

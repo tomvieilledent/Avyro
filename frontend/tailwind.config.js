@@ -3,6 +3,9 @@ module.exports = {
   content: ["./*.html", "./src/**/*.{html,js}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+      },
       colors: {
         avyro: {
           50: "#eef6ff",

@@ -1,26 +1,69 @@
-# Avyro — Plateforme de mutualisation
+# Avyro
 
-Plateforme de **mutualisation de formations** (*Avyro Training* — bleu) et de
-**salles de réunion** (*Avyro Room* — vert). Les entreprises proposent leurs
-places disponibles à d'autres structures qui peuvent les réserver en partageant
-les coûts.
+Plateforme de mutualisation entre entreprises, bimodale :
+
+- **Avyro Training** — partagez des places restantes sur vos formations
+- **Avyro Room** — sous-louez vos salles de réunion inoccupées
 
 ---
 
 ## Stack technique
 
-| Composant | Technologie |
-|-----------|-------------|
-| Framework | Flask 3.x (Python 3.12) |
-| ORM | SQLAlchemy 2.x via Flask-SQLAlchemy 3.x |
+| Couche | Technologie |
+|--------|-------------|
+| Backend | Python 3.12, Flask 3, SQLAlchemy 2, Flask-JWT-Extended |
+| API docs | flask-smorest (OpenAPI 3.0 / Swagger UI) |
+| Base de données | SQLite (dev) · PostgreSQL (prod) |
 | Migrations | Alembic via Flask-Migrate |
-| Auth | JWT — Flask-JWT-Extended |
-| Doc API | OpenAPI 3.0 — flask-smorest + Swagger UI |
-| Rate limit | flask-limiter |
-| Emails | SMTP (APScheduler pour les rappels planifiés) |
-| DB dev | SQLite |
-| DB prod | PostgreSQL |
-| Frontend | HTML + Tailwind CSS + JS vanilla |
+| Frontend | HTML5, Tailwind CSS v3, JavaScript vanilla |
+| Police | Inter (Google Fonts) |
+| Auth | JWT (access token + refresh token, localStorage) |
+| Emails | SMTP + APScheduler (rappels J-1, purge automatique) |
+| Serveur | Gunicorn (dev : Flask dev server) |
+| Tests | pytest 8, pytest-cov |
+
+---
+
+## Lancement rapide
+
+```bash
+./run-local.sh
+```
+
+Le script :
+1. Crée un venv Python et installe les dépendances
+2. Recompile le CSS Tailwind (si npm est présent)
+3. Crée les tables SQLite si nécessaire
+4. Démarre Gunicorn sur **http://localhost:8080**
+
+> Swagger UI disponible sur http://localhost:8080/api/docs
+
+### Lancement manuel (développement)
+
+```bash
+# Backend
+cd backend
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+export DATABASE_URL="sqlite:///dev.db"
+export SECRET_KEY="dev-change-me"
+export JWT_SECRET_KEY="dev-jwt-secret-please-change-me-32bytes"
+export SERVE_FRONTEND="../frontend"
+flask run --port 5000
+
+# Frontend (recompilation CSS)
+cd frontend
+npm install && npm run build
+```
+
+### Seed de démonstration
+
+```bash
+cd backend
+python3 seed_demo.py
+```
+
+Peuple la base avec 8 formations, 6 salles de réunion et renomme les entreprises avec des noms réalistes.
 
 ---
 
@@ -28,223 +71,152 @@ les coûts.
 
 ```
 Avyro/
-├── run-local.sh                  # Lance toute l'app sur :8080 (sans Docker)
-├── README.md
 ├── backend/
-│   ├── wsgi.py                   # Point d'entrée WSGI (gunicorn)
+│   ├── app/
+│   │   ├── api/            # Blueprints REST (auth, companies, trainings, rooms, bookings)
+│   │   ├── models/         # SQLAlchemy models (Company, User, Training, Room, Booking)
+│   │   ├── schemas/        # Marshmallow schemas (validation + sérialisation)
+│   │   ├── services/       # Mailer SMTP + scheduler de maintenance
+│   │   └── utils/          # Auth helpers, calcul géographique (Haversine)
+│   ├── tests/              # 63 tests pytest
+│   ├── seed_demo.py        # Données de démonstration
 │   ├── requirements.txt
-│   ├── .flaskenv                 # FLASK_APP / FLASK_ENV pour `flask run`
-│   └── app/
-│       ├── __init__.py           # Application factory
-│       ├── config.py             # Config dev / test / prod
-│       ├── extensions.py         # Instances des extensions Flask
-│       ├── models/               # Modèles SQLAlchemy
-│       │   ├── mixins.py         # TimestampMixin (created_at / updated_at)
-│       │   ├── company.py        # Company (entreprise ou particulier)
-│       │   ├── user.py           # User (rattaché à une Company)
-│       │   ├── training.py       # Training (formation OU salle, kind=discriminant)
-│       │   └── booking.py        # Booking (demande de réservation)
-│       ├── schemas/              # Schemas marshmallow (validation + doc OpenAPI)
-│       │   ├── auth.py
-│       │   ├── company.py
-│       │   ├── training.py
-│       │   └── booking.py
-│       ├── api/                  # Routes HTTP (Flask MethodView + flask-smorest)
-│       │   ├── auth.py           # /api/auth/*
-│       │   ├── companies.py      # /api/companies/*
-│       │   ├── trainings.py      # /api/trainings/*
-│       │   └── bookings.py       # /api/bookings/*
-│       ├── services/
-│       │   ├── mailer.py         # Envoi d'emails (SMTP ou outbox fichier en dev)
-│       │   └── maintenance.py    # Rappels planifiés + purge formations terminées
-│       └── utils/
-│           └── auth.py           # current_user(), admin_required
-├── tests/
-│   ├── conftest.py               # Fixtures pytest (app, client, helpers)
-│   ├── test_auth.py              # 15 tests
-│   ├── test_companies.py         # 6 tests
-│   ├── test_trainings.py         # 16 tests
-│   ├── test_bookings.py          # 15 tests
-│   └── test_maintenance.py       # 6 tests — rappels email + purge
-└── frontend/
-    ├── index.html
-    ├── login.html
-    ├── register.html
-    ├── dashboard.html
-    ├── profile.html
-    └── src/
-        ├── api.js                # Client HTTP (fetch + gestion JWT)
-        ├── dashboard.js          # Logique dashboard (catalog, bookings, etc.)
-        └── profile.js            # Logique page profil
+│   └── wsgi.py
+├── frontend/
+│   ├── index.html          # Page d'accueil publique
+│   ├── login.html          # Connexion
+│   ├── register.html       # Inscription
+│   ├── dashboard.html      # Tableau de bord (Training + Room)
+│   ├── profile.html        # Profil utilisateur et structure
+│   ├── src/
+│   │   ├── api.js          # Client HTTP (JWT, fetch)
+│   │   ├── dashboard.js    # Logique dashboard bimodal
+│   │   ├── profile.js      # Logique profil
+│   │   └── input.css       # Source Tailwind CSS
+│   └── dist/styles.css     # CSS compilé
+├── run-local.sh
+└── README.md
 ```
 
 ---
 
-## Lancer le projet (état actuel)
+## API
 
-> Toutes les commandes partent de la **racine du projet** (`/root/Holberton/Avyro/`),
-> sauf mention contraire.
+Toutes les routes sont préfixées `/api`. L'authentification se fait via header `Authorization: Bearer <token>`.
 
-### 1. Installer les dépendances (une seule fois)
+### Auth — `/api/auth`
 
-```bash
-# Depuis : /root/Holberton/Avyro/backend/
-cd backend
-python3 -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
-```
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| `POST` | `/register` | Inscription (crée user + company) |
+| `POST` | `/login` | Connexion → access\_token + refresh\_token |
+| `GET` | `/me` | Profil de l'utilisateur connecté |
+| `PATCH` | `/me` | Mise à jour du profil (nom, email, téléphone, mot de passe) |
 
-### 2. Créer la base de données SQLite (une seule fois)
+### Companies — `/api/companies`
 
-```bash
-# Depuis : /root/Holberton/Avyro/backend/   (venv activé)
-FLASK_ENV=development \
-DATABASE_URL="sqlite:////root/Holberton/Avyro/backend/dev.db" \
-SECRET_KEY="dev-change-me" \
-JWT_SECRET_KEY="dev-jwt-secret-please-change-me-32bytes" \
-python -c "
-from app import create_app
-from app.extensions import db
-app = create_app('development')
-with app.app_context():
-    db.create_all()
-    print('Tables OK')
-"
-```
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| `GET` | `/me` | Infos de la structure de l'utilisateur |
+| `PATCH` | `/me` | Mise à jour (admin uniquement) |
+| `GET` | `/<id>` | Détails d'une structure |
 
-### 3. Lancer le serveur (frontend + API, port 8080)
+### Formations — `/api/trainings`
 
-```bash
-# Depuis : /root/Holberton/Avyro/backend/   (venv activé)
-. .venv/bin/activate
-FLASK_ENV=development \
-DATABASE_URL="sqlite:////root/Holberton/Avyro/backend/dev.db" \
-SECRET_KEY="dev-change-me" \
-JWT_SECRET_KEY="dev-jwt-secret-please-change-me-32bytes" \
-SERVE_FRONTEND="/root/Holberton/Avyro/frontend" \
-RUN_SCHEDULER=0 \
-gunicorn -b 0.0.0.0:8080 -k gthread -w 1 --threads 4 --timeout 120 wsgi:app
-```
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| `GET` | `/` | Catalogue (status=open, hors propre company) |
+| `GET` | `/?mine=true` | Mes formations publiées |
+| `GET` | `/?q=terme` | Recherche (titre, lieu, description) |
+| `GET` | `/?lat=&lng=&radius=` | Filtre géographique (Haversine) |
+| `POST` | `/` | Publier une formation |
+| `PATCH` | `/<id>` | Modifier (provider uniquement) |
+| `DELETE` | `/<id>` | Supprimer (provider uniquement) |
+| `GET` | `/reports` | Inscrits confirmés par formation |
 
-Un seul process gunicorn sert **à la fois** le frontend statique et l'API REST.
+### Salles — `/api/rooms`
 
-| URL | Contenu |
-|-----|---------|
-| `http://localhost:8080/` | Page d'accueil |
-| `http://localhost:8080/dashboard.html` | Dashboard |
-| `http://localhost:8080/api/health` | Health check |
-| `http://localhost:8080/api/docs` | Swagger UI |
+Même interface que `/api/trainings`, appliquée aux salles de réunion.
 
-### Script tout-en-un
+### Réservations — `/api/bookings`
 
-```bash
-# Depuis : /root/Holberton/Avyro/   (racine)
-./run-local.sh
-```
-
-Le script crée le venv, installe les dépendances, crée les tables et lance
-gunicorn. Pré-requis : `python3`. Le CSS Tailwind est recompilé si `npm` est
-présent (sinon le `dist/styles.css` existant est conservé).
-
-### Tuer le serveur
-
-```bash
-pkill -f "gunicorn.*wsgi" 2>/dev/null || true
-```
-
----
-
-## Documentation API interactive (Swagger UI)
-
-```
-http://localhost:8080/api/docs
-```
-
-Spec OpenAPI 3.0 JSON : `http://localhost:8080/api/openapi.json`
-
-**Authentification dans Swagger :** cliquer sur *Authorize* et saisir uniquement
-le token JWT (sans le préfixe `Bearer`).
-
----
-
-## Endpoints
-
-### Auth
-
-| Méthode | Route | Auth | Description |
-|---------|-------|------|-------------|
-| POST | `/api/auth/register` | — | Crée un compte + Company |
-| POST | `/api/auth/login` | — | Connexion, retourne les tokens JWT |
-| POST | `/api/auth/refresh` | Refresh JWT | Renouvelle l'access token |
-| GET | `/api/auth/me` | JWT | Profil de l'utilisateur connecté |
-| PATCH | `/api/auth/me` | JWT | Met à jour le profil |
-
-### Companies
-
-| Méthode | Route | Auth | Description |
-|---------|-------|------|-------------|
-| GET | `/api/companies/me` | JWT | Company de l'utilisateur |
-| PATCH | `/api/companies/me` | JWT (admin) | Met à jour la Company |
-| GET | `/api/companies/<id>` | JWT | Consulte une Company par id |
-
-### Formations & Salles
-
-Paramètre `kind` : `training` (Avyro Training, défaut) ou `room` (Avyro Room).
-
-| Méthode | Route | Auth | Description |
-|---------|-------|------|-------------|
-| GET | `/api/trainings?kind=...` | JWT | Catalogue ouvert |
-| GET | `/api/trainings?mine=true` | JWT | Mes publications |
-| GET | `/api/trainings/reports` | JWT | Rapports inscrits live |
-| POST | `/api/trainings` | JWT | Publie une formation ou salle |
-| GET | `/api/trainings/<id>` | JWT | Détail |
-| PATCH | `/api/trainings/<id>` | JWT (provider) | Modifie |
-| DELETE | `/api/trainings/<id>` | JWT (provider) | Supprime (cascade bookings) |
-
-### Réservations
-
-| Méthode | Route | Auth | Description |
-|---------|-------|------|-------------|
-| GET | `/api/bookings` | JWT | Mes réservations |
-| GET | `/api/bookings/incoming` | JWT | Demandes reçues |
-| POST | `/api/bookings` | JWT | Crée une demande (status=pending) |
-| PATCH | `/api/bookings/<id>` | JWT (provider) | Confirme ou refuse |
-| DELETE | `/api/bookings/<id>` | JWT (booker) | Annule (pending seulement) |
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| `GET` | `/` | Mes demandes de réservation |
+| `GET` | `/?kind=training` | Filtrer par type (training / room) |
+| `GET` | `/incoming` | Demandes reçues sur mes offres |
+| `POST` | `/` | Créer une demande (`training_id` ou `room_id` + `seats`) |
+| `PATCH` | `/<id>` | Confirmer / refuser (provider uniquement) |
+| `DELETE` | `/<id>` | Se désinscrire (demandeur, si pending) |
 
 ---
 
 ## Modèle de données
 
 ```
-Company (1) ──── (N) User
-    │
-    │ as provider
-    │
-    └──── (N) Training (kind = 'training' | 'room')
-                │
-                └──── (N) Booking ──── Company (as booker)
-                                  └─── User (requested_by)
+Company (1) ──< User          (N membres par structure)
+Company (1) ──< Training      (N formations publiées)
+Company (1) ──< Room          (N salles publiées)
+Training  (1) ──< Booking     (N demandes de réservation)
+Room      (1) ──< Booking
+Booking  >── Company          (booker = company qui réserve)
+Booking  >── User             (requested_by = utilisateur demandeur)
 ```
 
-### Cycle de vie — Training
+### Cycle de vie d'une offre
 
 ```
-open ──→ closed     (fermeture manuelle par le provider)
-open ──→ cancelled  (annulation)
+open  →  closed     (fermeture manuelle)
+open  →  cancelled  (annulation)
 ```
 
-Les formations dont `ends_at` est dépassé sont **supprimées automatiquement**
-par la tâche de maintenance (cascade sur les bookings).
-
-### Cycle de vie — Booking
+### Cycle de vie d'une réservation
 
 ```
-pending ──→ confirmed   (provider valide)
-pending ──→ cancelled   (provider refuse OU booker annule)
+pending  →  confirmed  (provider confirme)
+pending  →  cancelled  (provider refuse ou demandeur annule)
 ```
 
-Une réservation confirmée ne peut plus être annulée par le booker via l'API.
+---
+
+## Recherche géographique
+
+Le filtre "Autour de moi" utilise la **formule de Haversine** (grand cercle) :
+
+- Offres **distantes** (`is_remote=true`) : toujours incluses, pas de badge km
+- Offres **avec coordonnées** : filtrées par rayon, triées par distance croissante
+- Offres **sans coordonnées** : toujours incluses
+
+Rayon disponible dans l'UI : 5 / 10 / 25 / 50 / 100 km.
+
+Le code postal saisi à la création est résolu vers une ville + coordonnées GPS via une table statique couvrant les principaux départements français.
+
+---
+
+## Maintenance automatique
+
+Le scheduler APScheduler (activé via `RUN_SCHEDULER=1`) exécute quotidiennement :
+
+1. **Rappels** — email aux inscrits 1 jour ouvré avant le début de chaque offre
+2. **Purge** — suppression des offres dont `ends_at` est dépassé de plus de 7 jours
+
+---
+
+## Variables d'environnement
+
+| Variable | Obligatoire | Description |
+|----------|-------------|-------------|
+| `DATABASE_URL` | oui | ex. `sqlite:///dev.db` ou `postgresql://...` |
+| `SECRET_KEY` | oui | Clé Flask |
+| `JWT_SECRET_KEY` | oui | Clé signature JWT (min. 32 caractères) |
+| `SERVE_FRONTEND` | non | Chemin absolu du dossier frontend (Flask sert les fichiers statiques) |
+| `RUN_SCHEDULER` | non | `1` pour activer le scheduler APScheduler |
+| `MAIL_SERVER` | non | Serveur SMTP (défaut : log fichier) |
+| `MAIL_PORT` | non | Port SMTP (défaut : 587) |
+| `MAIL_USERNAME` | non | Identifiant SMTP |
+| `MAIL_PASSWORD` | non | Mot de passe SMTP |
+| `MAIL_FROM` | non | Adresse expéditeur |
+| `FLASK_ENV` | non | `development` / `production` (défaut : `development`) |
 
 ---
 
@@ -252,69 +224,21 @@ Une réservation confirmée ne peut plus être annulée par le booker via l'API.
 
 ```bash
 cd backend
-
-# Tous les tests (63 au total)
-pytest
-
-# Avec rapport de couverture
-pytest --cov=app --cov-report=term-missing
-
-# Suite ciblée
-pytest tests/test_bookings.py -v
+pytest                         # tous les tests
+pytest --cov=app               # avec couverture
+pytest tests/test_trainings.py # un fichier
 ```
+
+63 tests couvrant : authentification, gestion des structures, formations, salles, réservations et maintenance.
 
 ---
 
-## Maintenance planifiée
-
-Activée avec `RUN_SCHEDULER=1`. Deux tâches au même intervalle
-(`SCHEDULER_INTERVAL_MINUTES`, défaut 60 min) :
-
-1. **Rappels email** — envoie la liste des inscrits au provider 1 jour ouvré
-   avant le début. Idempotent (UPDATE conditionnel, safe multi-workers).
-
-2. **Purge** — supprime les formations terminées (`ends_at ≤ now`).
-
-Lancement manuel :
+## Développement frontend
 
 ```bash
-flask maintenance
+cd frontend
+npm run build   # compilation one-shot
+npm run watch   # recompilation automatique
 ```
 
----
-
-## Configuration
-
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `FLASK_ENV` | `production` | `development` \| `testing` \| `production` |
-| `DATABASE_URL` | SQLite (dev) / PostgreSQL (prod) | URL de connexion |
-| `SECRET_KEY` | *dev-secret* | **Changer en production** |
-| `JWT_SECRET_KEY` | *dev-jwt* | **Changer en production** |
-| `JWT_ACCESS_MINUTES` | `30` | Durée access token (min) |
-| `JWT_REFRESH_DAYS` | `30` | Durée refresh token (jours) |
-| `MAIL_SERVER` | — | Serveur SMTP (absent → outbox fichier) |
-| `MAIL_PORT` | `587` | Port SMTP |
-| `MAIL_FROM` | `no-reply@avyro.app` | Expéditeur |
-| `RUN_SCHEDULER` | — | `1` pour activer le scheduler |
-| `SCHEDULER_INTERVAL_MINUTES` | `60` | Intervalle scheduler |
-| `SERVE_FRONTEND` | — | Chemin frontend (dev sans nginx) |
-| `RATELIMIT_STORAGE_URI` | `memory://` | `redis://...` recommandé en prod |
-
----
-
-## Production (gunicorn)
-
-```bash
-# Variables obligatoires
-DATABASE_URL=postgresql://user:pass@host:5432/avyro
-SECRET_KEY=<32-bytes-random>
-JWT_SECRET_KEY=<32-bytes-random>
-FLASK_ENV=production
-
-# Démarrage
-gunicorn wsgi:app --bind 0.0.0.0:8080 --workers 4
-```
-
-> **Note migrations** : en production, utiliser `flask db migrate && flask db upgrade`
-> (Alembic via Flask-Migrate) plutôt que `flask create-db`.
+La police **Inter** est chargée depuis Google Fonts. Le CSS compilé est `dist/styles.css`.
