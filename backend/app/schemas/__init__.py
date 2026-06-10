@@ -15,29 +15,29 @@ from .training import (
     TrainingSchema,
     TrainingReportSchema,
 )
+from .room import (
+    RoomCreateSchema,
+    RoomUpdateSchema,
+    RoomQuerySchema,
+    RoomSchema,
+    RoomReportSchema,
+)
 from .booking import (
     BookingCreateSchema,
     BookingUpdateSchema,
     BookingSchema,
+    KindQuerySchema,
     MessageSchema,
 )
 
 __all__ = [
-    "RegisterSchema",
-    "LoginSchema",
-    "UpdateProfileSchema",
-    "UserSchema",
-    "TokenResponseSchema",
-    "AccessTokenSchema",
-    "UpdateCompanySchema",
-    "CompanySchema",
-    "TrainingCreateSchema",
-    "TrainingUpdateSchema",
-    "TrainingQuerySchema",
-    "TrainingSchema",
-    "TrainingReportSchema",
-    "BookingCreateSchema",
-    "BookingUpdateSchema",
-    "BookingSchema",
-    "MessageSchema",
+    "RegisterSchema", "LoginSchema", "UpdateProfileSchema", "UserSchema",
+    "TokenResponseSchema", "AccessTokenSchema",
+    "UpdateCompanySchema", "CompanySchema",
+    "TrainingCreateSchema", "TrainingUpdateSchema", "TrainingQuerySchema",
+    "TrainingSchema", "TrainingReportSchema",
+    "RoomCreateSchema", "RoomUpdateSchema", "RoomQuerySchema",
+    "RoomSchema", "RoomReportSchema",
+    "BookingCreateSchema", "BookingUpdateSchema", "BookingSchema",
+    "KindQuerySchema", "MessageSchema",
 ]

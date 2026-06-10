@@ -26,6 +26,46 @@
  *   PATCH /api/bookings/<id>    → confirmer / refuser
  *   DELETE /api/bookings/<id>   → se désinscrire
  */
+// ── Lookup CP → ville + coordonnées (département 2 chiffres en fallback) ──────
+const CP_LOOKUP = {
+  "92400": { city: "Courbevoie",       lat: 48.8917, lng:  2.2421 },
+  "69003": { city: "Lyon",             lat: 45.7576, lng:  4.8324 },
+  "69001": { city: "Lyon",             lat: 45.7485, lng:  4.8467 },
+  "75": { city: "Paris",               lat: 48.8566, lng:  2.3522 },
+  "69": { city: "Lyon",                lat: 45.7640, lng:  4.8357 },
+  "13": { city: "Marseille",           lat: 43.2965, lng:  5.3698 },
+  "33": { city: "Bordeaux",            lat: 44.8378, lng: -0.5792 },
+  "44": { city: "Nantes",              lat: 47.2184, lng: -1.5536 },
+  "31": { city: "Toulouse",            lat: 43.6047, lng:  1.4442 },
+  "67": { city: "Strasbourg",          lat: 48.5734, lng:  7.7521 },
+  "59": { city: "Lille",               lat: 50.6292, lng:  3.0573 },
+  "06": { city: "Nice",                lat: 43.7102, lng:  7.2620 },
+  "35": { city: "Rennes",              lat: 48.1147, lng: -1.6794 },
+  "34": { city: "Montpellier",         lat: 43.6119, lng:  3.8772 },
+  "38": { city: "Grenoble",            lat: 45.1885, lng:  5.7245 },
+  "21": { city: "Dijon",               lat: 47.3220, lng:  5.0415 },
+  "57": { city: "Metz",                lat: 49.1193, lng:  6.1757 },
+  "54": { city: "Nancy",               lat: 48.6921, lng:  6.1844 },
+  "51": { city: "Reims",               lat: 49.2583, lng:  4.0317 },
+  "76": { city: "Rouen",               lat: 49.4432, lng:  1.0993 },
+  "63": { city: "Clermont-Ferrand",    lat: 45.7772, lng:  3.0870 },
+  "29": { city: "Brest",               lat: 48.3905, lng: -4.4860 },
+  "87": { city: "Limoges",             lat: 45.8336, lng:  1.2611 },
+  "86": { city: "Poitiers",            lat: 46.5802, lng:  0.3404 },
+  "64": { city: "Pau",                 lat: 43.2951, lng: -0.3708 },
+  "92": { city: "Hauts-de-Seine",      lat: 48.8737, lng:  2.2531 },
+  "93": { city: "Seine-Saint-Denis",   lat: 48.9362, lng:  2.3597 },
+  "94": { city: "Val-de-Marne",        lat: 48.7886, lng:  2.4652 },
+  "78": { city: "Yvelines",            lat: 48.7967, lng:  1.7819 },
+  "91": { city: "Essonne",             lat: 48.6314, lng:  2.3019 },
+  "77": { city: "Seine-et-Marne",      lat: 48.6236, lng:  2.9563 },
+  "95": { city: "Val-d'Oise",          lat: 49.0339, lng:  2.0815 },
+};
+
+function resolvePostalCode(cp) {
+  return CP_LOOKUP[cp] || CP_LOOKUP[cp.slice(0, 2)] || null;
+}
+
 Avyro.requireAuth();
 
 const user = Avyro.currentUser();
@@ -91,21 +131,71 @@ const MODES = {
     deleteConfirm: (t) => `Supprimer la salle « ${t.title} » ?`,
   },
 };
-const currentMode =
+let currentMode =
   localStorage.getItem("avyro_mode") === "room" ? "room" : "training";
-const MODE = MODES[currentMode];
-// Paramètre de requête injecté dans toutes les API calls (?kind=training|room)
-const kindQS = `kind=${MODE.kind}`;
+let MODE = MODES[currentMode];
+let kindQS = `kind=${MODE.kind}`;
+
+/** Préfixe API selon le mode actif : /rooms ou /trainings. */
+const apiBase = () => currentMode === "room" ? "/rooms" : "/trainings";
+
+// ── État géolocalisation ──────────────────────────────────────────────────────
+let geoState = { active: false, lat: null, lng: null };
+
+function requestGeo() {
+  if (!navigator.geolocation) {
+    showToast("Géolocalisation non supportée par ce navigateur.", "error");
+    return;
+  }
+  const btn = document.getElementById("geo-btn");
+  btn.textContent = "Localisation…";
+  btn.disabled = true;
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      geoState = { active: true, lat: pos.coords.latitude, lng: pos.coords.longitude };
+      btn.disabled = false;
+      _updateGeoUI();
+      loaders.catalog();
+    },
+    () => {
+      btn.disabled = false;
+      _updateGeoUI();
+      showToast("Impossible d'obtenir votre position. Vérifiez les permissions.", "error");
+    },
+    { enableHighAccuracy: false, timeout: 8000 }
+  );
+}
+
+function resetGeo() {
+  geoState = { active: false, lat: null, lng: null };
+  _updateGeoUI();
+  loaders.catalog();
+}
+
+function _updateGeoUI() {
+  const btn    = document.getElementById("geo-btn");
+  const status = document.getElementById("geo-status");
+  const stTxt  = document.getElementById("geo-status-text");
+  const radius = document.getElementById("geo-radius")?.value || "25";
+  if (geoState.active) {
+    btn.innerHTML = `<svg fill="currentColor" viewBox="0 0 24 24" style="width:14px;height:14px;flex-shrink:0"><circle cx="12" cy="12" r="3"/><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/></svg> Position active`;
+    btn.classList.add("active");
+    if (status) status.style.display = "flex";
+    if (stTxt)  stTxt.textContent = `Résultats dans un rayon de ${radius} km autour de vous.`;
+  } else {
+    btn.innerHTML = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:14px;height:14px;flex-shrink:0"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="2 2"/></svg> Autour de moi`;
+    btn.classList.remove("active");
+    if (status) status.style.display = "none";
+  }
+}
 
 // ── Navigation par onglets ────────────────────────────────────────────────────
 
 const tabs = document.querySelectorAll(".tab");
+let activeTab = "catalog";
 
-/**
- * Active un onglet : met à jour les classes CSS et déclenche le loader
- * associé pour rafraîchir le contenu depuis l'API.
- */
 function activate(name) {
+  activeTab = name;
   tabs.forEach((t) =>
     t.classList.toggle("border-b-2", t.dataset.tab === name)
   );
@@ -127,9 +217,12 @@ tabs.forEach((t) => t.addEventListener("click", () => activate(t.dataset.tab)));
  */
 function switchMode(target) {
   if (target === currentMode) return;
+  currentMode = target;
+  MODE = MODES[currentMode];
+  kindQS = `kind=${MODE.kind}`;
   localStorage.setItem("avyro_mode", target);
-  document.body.classList.add("page-leave"); // déclenche le fondu CSS
-  setTimeout(() => location.reload(), 180);
+  applyMode();
+  activate(activeTab);
 }
 
 /**
@@ -234,9 +327,15 @@ function trainingCard(t, { canBook, owner } = {}) {
     action = `<span class="shrink-0 rounded-full ${s.badge} px-3 py-1 text-xs font-medium">${s.label}</span>`;
   }
 
+  const distBadge = t.distance_km != null
+    ? `<span class="dist-badge">📍 ${t.distance_km} km</span>`
+    : "";
   el.innerHTML = `
     <div class="min-w-0 flex-1">
-      <h3 class="truncate font-semibold">${t.title}</h3>
+      <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+        <h3 class="truncate font-semibold">${t.title}</h3>
+        ${distBadge}
+      </div>
       <p class="mt-0.5 truncate text-sm text-gray-500">${t.provider_name}</p>
       <p class="mt-2 line-clamp-2 text-sm text-gray-600">${t.description || ""}</p>
       <dl class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-700">
@@ -260,11 +359,11 @@ function trainingCard(t, { canBook, owner } = {}) {
 
 // ── Actions utilisateur ───────────────────────────────────────────────────────
 
-/** Supprime une formation après confirmation. */
+/** Supprime une formation/salle après confirmation. */
 async function deleteTraining(t) {
   if (!confirm(MODE.deleteConfirm(t))) return;
   try {
-    await Avyro.api(`/trainings/${t.id}`, { method: "DELETE" });
+    await Avyro.api(`${apiBase()}/${t.id}`, { method: "DELETE" });
     loaders.mine();
   } catch (e) {
     alert(e.data?.message || "Erreur");
@@ -273,18 +372,70 @@ async function deleteTraining(t) {
 
 /** Crée une demande de réservation (POST /api/bookings). */
 async function book(t) {
-  const seats = parseInt(prompt(MODE.bookPrompt(t.available_seats), "1"), 10);
+  const seats = await promptSeats(t);
   if (!seats) return;
   try {
-    await Avyro.api("/bookings", {
-      method: "POST",
-      body: { training_id: t.id, seats },
-    });
-    alert("Demande envoyée.");
+    const bookBody = currentMode === "room"
+      ? { room_id: t.id, seats }
+      : { training_id: t.id, seats };
+    await Avyro.api("/bookings", { method: "POST", body: bookBody });
+    showToast("Demande envoyée avec succès.");
     loaders.catalog();
   } catch (e) {
-    alert(e.data?.message || "Erreur");
+    showToast(e.data?.message || "Erreur lors de la réservation.", "error");
   }
+}
+
+/** Ouvre la modale de saisie du nombre de places, retourne Promise<number|null>. */
+function promptSeats(t) {
+  return new Promise((resolve) => {
+    const overlay  = document.getElementById("book-modal");
+    const titleEl  = document.getElementById("book-modal-title");
+    const descEl   = document.getElementById("book-modal-desc");
+    const input    = document.getElementById("book-seats-input");
+    const form     = document.getElementById("book-modal-form");
+    const cancelBtn = document.getElementById("book-modal-cancel");
+
+    titleEl.textContent = t.title;
+    descEl.textContent  = MODE.bookPrompt(t.available_seats);
+    input.value = "1";
+    input.max   = String(t.available_seats);
+    overlay.classList.replace("hidden", "flex");
+    setTimeout(() => input.focus(), 50);
+
+    function cleanup() {
+      overlay.classList.replace("flex", "hidden");
+      form.removeEventListener("submit", onSubmit);
+      cancelBtn.removeEventListener("click", onCancel);
+      overlay.removeEventListener("click", onOverlay);
+      document.removeEventListener("keydown", onKey);
+    }
+    function onSubmit(e) {
+      e.preventDefault();
+      const v = parseInt(input.value, 10);
+      cleanup();
+      resolve(v > 0 ? v : null);
+    }
+    function onCancel()  { cleanup(); resolve(null); }
+    function onOverlay(e) { if (e.target === overlay) onCancel(); }
+    function onKey(e)    { if (e.key === "Escape") onCancel(); }
+
+    form.addEventListener("submit", onSubmit);
+    cancelBtn.addEventListener("click", onCancel);
+    overlay.addEventListener("click", onOverlay);
+    document.addEventListener("keydown", onKey);
+  });
+}
+
+/** Affiche un toast de notification temporaire (3,5 s). */
+function showToast(msg, type) {
+  const el    = document.getElementById("toast");
+  const msgEl = document.getElementById("toast-msg");
+  if (!el || !msgEl) return;
+  msgEl.textContent = msg;
+  el.className = type === "error" ? "toast-error" : "toast-success";
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => { el.className = "toast-hidden"; }, 3500);
 }
 
 // ── Loaders (rechargement des onglets depuis l'API) ───────────────────────────
@@ -297,12 +448,19 @@ async function book(t) {
 const loaders = {
   /** Onglet 1 : Catalogue — formations/salles ouvertes des autres Companies. */
   async catalog() {
-    const q = document.getElementById("search").value;
-    const list = await Avyro.api(
-      `/trainings?${kindQS}${q ? `&q=${encodeURIComponent(q)}` : ""}`
-    );
     const c = document.getElementById("catalog-list");
     c.innerHTML = "";
+    const q      = document.getElementById("search").value;
+    const radius = document.getElementById("geo-radius")?.value || "25";
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (geoState.active && geoState.lat != null) {
+      params.set("lat", String(geoState.lat));
+      params.set("lng", String(geoState.lng));
+      params.set("radius", radius);
+    }
+    const qs   = params.toString();
+    const list = await Avyro.api(`${apiBase()}${qs ? "?" + qs : ""}`);
     // Exclut les formations de la propre Company de l'utilisateur
     list
       .filter((t) => t.provider_id !== user.company_id)
@@ -316,9 +474,9 @@ const loaders = {
 
   /** Onglet 2 : Mes offres — formations/salles publiées par l'utilisateur. */
   async mine() {
-    const list = await Avyro.api(`/trainings?mine=true&${kindQS}`);
     const c = document.getElementById("mine-list");
     c.innerHTML = "";
+    const list = await Avyro.api(`${apiBase()}?mine=true`);
     list.forEach((t) => {
       const card = trainingCard(t, { owner: true });
       if (card) c.appendChild(card);
@@ -329,9 +487,9 @@ const loaders = {
 
   /** Onglet 3 : Mes réservations — demandes de la Company de l'utilisateur. */
   async bookings() {
-    const list = await Avyro.api(`/bookings?${kindQS}`);
     const c = document.getElementById("bookings-list");
     c.innerHTML = "";
+    const list = await Avyro.api(`/bookings?${kindQS}`);
     list.forEach((b) => {
       const el = document.createElement("div");
       el.className = "card flex items-center justify-between gap-3";
@@ -361,9 +519,9 @@ const loaders = {
 
   /** Onglet 4 : Demandes reçues — réservations à confirmer ou refuser. */
   async incoming() {
-    const list = await Avyro.api(`/bookings/incoming?${kindQS}`);
     const c = document.getElementById("incoming-list");
     c.innerHTML = "";
+    const list = await Avyro.api(`/bookings/incoming?${kindQS}`);
     list.forEach((b) => {
       const el = document.createElement("div");
       el.className = "card flex items-center justify-between";
@@ -398,9 +556,9 @@ const loaders = {
 
   /** Onglet 5 : Rapports — liste live des inscrits confirmés par formation. */
   async reports() {
-    const list = await Avyro.api(`/trainings/reports?${kindQS}`);
     const c = document.getElementById("reports-list");
     c.innerHTML = "";
+    const list = await Avyro.api(`${apiBase()}/reports`);
     list.forEach((r) => {
       const rows = (r.attendees || [])
         .map(
@@ -416,7 +574,7 @@ const loaders = {
       el.className = "card";
       el.innerHTML = `
         <div class="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 class="font-semibold">${r.training_title}</h3>
+          <h3 class="font-semibold">${r.training_title || r.room_title}</h3>
           <span class="text-sm text-gray-500">Début : ${fmtDate(r.starts_at)}</span>
         </div>
         <p class="mt-1 text-sm text-gray-600"><b>${r.total_seats}</b> inscrit(s) confirmé(s)</p>
@@ -447,6 +605,12 @@ document.getElementById("search").addEventListener("input", () => {
   window._t = setTimeout(loaders.catalog, 300);
 });
 
+/** Recharge le catalogue quand le rayon change (si géo active). */
+document.getElementById("geo-radius")?.addEventListener("change", () => {
+  _updateGeoUI();
+  if (geoState.active) loaders.catalog();
+});
+
 // ── Modale de création / édition ──────────────────────────────────────────────
 
 const modal = document.getElementById("modal");
@@ -473,7 +637,8 @@ function openModal(training) {
   if (isEdit) {
     form.title.value = training.title;
     form.description.value = training.description || "";
-    form.location.value = training.location || "";
+    const cpMatch = (!training.is_remote && training.location || "").match(/^(\d{5})/);
+    form.postal_code.value = cpMatch ? cpMatch[1] : "";
     form.contact_phone.value = training.contact_phone || "";
     form.starts_at.value = training.starts_at.slice(0, 16);
     form.ends_at.value = training.ends_at.slice(0, 16);
@@ -495,13 +660,29 @@ form.addEventListener("submit", async (e) => {
   const body = Object.fromEntries(f.entries());
   body.shared_seats = parseInt(body.shared_seats, 10);
   body.price_per_seat = parseFloat(body.price_per_seat || "0");
-  // Le mode (training/room) est injecté depuis la config courante
   body.kind = MODE.kind;
+  delete body.kind;
+
+  // Résolution CP → localisation + coordonnées
+  const cp = (body.postal_code || "").trim();
+  delete body.postal_code;
+  if (!cp) {
+    body.is_remote = true;
+    body.location = "À distance";
+    body.latitude = null;
+    body.longitude = null;
+  } else {
+    const geo = resolvePostalCode(cp);
+    body.is_remote = false;
+    body.location = geo ? `${cp} ${geo.city}` : cp;
+    body.latitude = geo ? geo.lat : null;
+    body.longitude = geo ? geo.lng : null;
+  }
   try {
     if (editingId) {
-      await Avyro.api(`/trainings/${editingId}`, { method: "PATCH", body });
+      await Avyro.api(`${apiBase()}/${editingId}`, { method: "PATCH", body });
     } else {
-      await Avyro.api("/trainings", { method: "POST", body });
+      await Avyro.api(apiBase(), { method: "POST", body });
     }
     closeModal();
     e.target.reset();

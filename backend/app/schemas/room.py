@@ -1,57 +1,29 @@
-"""Schemas marshmallow pour les Training (formations et salles)."""
+"""Schemas marshmallow pour les Room (salles de réunion)."""
 from marshmallow import Schema, fields, validate, validates_schema, ValidationError
 
 
-# ── Schémas d'entrée ─────────────────────────────────────────────────────────
-
-class TrainingCreateSchema(Schema):
-    """Corps de la requête POST /trainings."""
-
-    title = fields.Str(
-        required=True,
-        validate=validate.Length(min=1, max=255),
-        metadata={"example": "Sécurité incendie"},
-    )
+class RoomCreateSchema(Schema):
+    title = fields.Str(required=True, validate=validate.Length(min=1, max=255))
     description = fields.Str(load_default=None, allow_none=True)
-    location = fields.Str(
-        load_default=None,
-        allow_none=True,
-        validate=validate.Length(max=255),
-    )
+    location = fields.Str(load_default=None, allow_none=True, validate=validate.Length(max=255))
     is_remote = fields.Bool(load_default=False)
-    contact_phone = fields.Str(
-        required=True,
-        validate=validate.Length(min=6, max=30),
-        metadata={"example": "0600000000"},
-    )
-    starts_at = fields.DateTime(required=True, metadata={"example": "2026-09-01T09:00:00"})
-    ends_at = fields.DateTime(required=True, metadata={"example": "2026-09-01T17:00:00"})
-    # Nombre de places proposées à la mutualisation (≥ 1)
+    contact_phone = fields.Str(required=True, validate=validate.Length(min=6, max=30))
+    starts_at = fields.DateTime(required=True)
+    ends_at = fields.DateTime(required=True)
     latitude = fields.Float(load_default=None, allow_none=True)
     longitude = fields.Float(load_default=None, allow_none=True)
     shared_seats = fields.Int(required=True, validate=validate.Range(min=1))
-    price_per_seat = fields.Float(
-        load_default=0.0,
-        validate=validate.Range(min=0),
-        metadata={"example": 150.0},
-    )
-    status = fields.Str(
-        load_default="open",
-        validate=validate.OneOf(["open", "closed", "cancelled"]),
-    )
+    price_per_seat = fields.Float(load_default=0.0, validate=validate.Range(min=0))
+    status = fields.Str(load_default="open", validate=validate.OneOf(["open", "closed", "cancelled"]))
 
     @validates_schema
     def validate_dates(self, data, **kwargs):
         if "starts_at" in data and "ends_at" in data:
             if data["ends_at"] <= data["starts_at"]:
-                raise ValidationError(
-                    "ends_at doit être postérieur à starts_at.", "ends_at"
-                )
+                raise ValidationError("ends_at doit être postérieur à starts_at.", "ends_at")
 
 
-class TrainingUpdateSchema(Schema):
-    """Corps de la requête PATCH /trainings/<id> (tous les champs optionnels)."""
-
+class RoomUpdateSchema(Schema):
     title = fields.Str(validate=validate.Length(min=1, max=255))
     description = fields.Str(allow_none=True)
     location = fields.Str(allow_none=True, validate=validate.Length(max=255))
@@ -67,14 +39,10 @@ class TrainingUpdateSchema(Schema):
     def validate_dates(self, data, **kwargs):
         if "starts_at" in data and "ends_at" in data:
             if data["ends_at"] <= data["starts_at"]:
-                raise ValidationError(
-                    "ends_at doit être postérieur à starts_at.", "ends_at"
-                )
+                raise ValidationError("ends_at doit être postérieur à starts_at.", "ends_at")
 
 
-class TrainingQuerySchema(Schema):
-    """Paramètres de requête GET /trainings."""
-
+class RoomQuerySchema(Schema):
     mine = fields.Bool(load_default=False)
     q = fields.Str(load_default=None, allow_none=True)
     lat = fields.Float(load_default=None, allow_none=True)
@@ -82,11 +50,7 @@ class TrainingQuerySchema(Schema):
     radius = fields.Float(load_default=25.0)
 
 
-# ── Schémas de sortie ────────────────────────────────────────────────────────
-
-class TrainingSchema(Schema):
-    """Représentation publique d'une Training."""
-
+class RoomSchema(Schema):
     id = fields.Int(dump_only=True)
     kind = fields.Str(dump_only=True)
     title = fields.Str(dump_only=True)
@@ -109,20 +73,16 @@ class TrainingSchema(Schema):
     created_at = fields.Str(dump_only=True)
 
 
-class AttendeeSchema(Schema):
-    """Inscrit confirmé dans un rapport."""
-
+class RoomAttendeeSchema(Schema):
     company_name = fields.Str()
     seats = fields.Int()
     contact_name = fields.Str()
     contact_email = fields.Email()
 
 
-class TrainingReportSchema(Schema):
-    """Compte rendu live d'une Training (liste des inscrits)."""
-
-    training_id = fields.Int()
-    training_title = fields.Str()
+class RoomReportSchema(Schema):
+    room_id = fields.Int()
+    room_title = fields.Str()
     starts_at = fields.Str()
-    total_seats = fields.Int(metadata={"description": "Nombre total de places confirmées"})
-    attendees = fields.List(fields.Nested(AttendeeSchema))
+    total_seats = fields.Int()
+    attendees = fields.List(fields.Nested(RoomAttendeeSchema))

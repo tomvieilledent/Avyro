@@ -65,13 +65,13 @@ def _register_blueprints(app: Flask) -> None:
     from .api.auth import blp as auth_blp
     from .api.companies import blp as companies_blp
     from .api.trainings import blp as trainings_blp
+    from .api.rooms import blp as rooms_blp
     from .api.bookings import blp as bookings_blp
 
-    # Les blueprints sont enregistrés sur smorest (flask-smorest) qui les
-    # transmet au app Flask + les ajoute à la spec OpenAPI.
     smorest.register_blueprint(auth_blp)
     smorest.register_blueprint(companies_blp)
     smorest.register_blueprint(trainings_blp)
+    smorest.register_blueprint(rooms_blp)
     smorest.register_blueprint(bookings_blp)
 
     # Health check (hors Swagger, appelé par les load balancers)

@@ -2,6 +2,7 @@
 from .company import Company
 from .user import User
 from .training import Training
+from .room import Room
 from .booking import Booking
 
-__all__ = ["Company", "User", "Training", "Booking"]
+__all__ = ["Company", "User", "Training", "Room", "Booking"]

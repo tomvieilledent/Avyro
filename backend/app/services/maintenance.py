@@ -18,7 +18,7 @@ from datetime import datetime, timedelta, timezone
 _now_utc = lambda: datetime.now(timezone.utc).replace(tzinfo=None)  # noqa: E731
 
 from app.extensions import db
-from app.models import Training
+from app.models import Training, Room
 from app.services.mailer import send_email
 
 
@@ -79,14 +79,18 @@ def send_due_reminders(now: datetime | None = None) -> int:
     now = now or _now_utc()
     sent = 0
 
-    pending = Training.query.filter_by(reminder_sent=False).all()
+    pending = (
+        Training.query.filter_by(reminder_sent=False).all()
+        + Room.query.filter_by(reminder_sent=False).all()
+    )
     for t in pending:
         if now < minus_one_business_day(t.starts_at):
             continue  # Encore trop tôt
 
         # Claim atomique : met à jour uniquement si reminder_sent est toujours False
+        model = Training if isinstance(t, Training) else Room
         claimed = (
-            Training.query
+            model.query
             .filter_by(id=t.id, reminder_sent=False)
             .update({"reminder_sent": True}, synchronize_session=False)
         )
@@ -114,14 +118,14 @@ def purge_finished_trainings(now: datetime | None = None) -> int:
     supprime automatiquement les Booking associés.
     """
     now = now or _now_utc()
-    finished = Training.query.filter(Training.ends_at <= now).all()
-
+    finished = (
+        Training.query.filter(Training.ends_at <= now).all()
+        + Room.query.filter(Room.ends_at <= now).all()
+    )
     for t in finished:
         db.session.delete(t)
-
     if finished:
         db.session.commit()
-
     return len(finished)
 
 

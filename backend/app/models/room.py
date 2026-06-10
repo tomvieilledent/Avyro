@@ -1,10 +1,4 @@
-"""
-Modèle Training — session de formation (kind='training') ou salle de réunion
-mutualisée (kind='room').
-
-Un seul modèle pour les deux types : même workflow (publication → réservation
-→ confirmation). Le champ `kind` discrimine les deux modes de l'interface.
-"""
+"""Modèle Room — salle de réunion mutualisée (Avyro Room)."""
 from sqlalchemy import select, func
 from sqlalchemy.ext.hybrid import hybrid_property
 
@@ -12,79 +6,49 @@ from app.extensions import db
 from .mixins import TimestampMixin
 
 
-class Training(TimestampMixin, db.Model):
+class Room(TimestampMixin, db.Model):
     """
-    Offre publiée par une Company (provider) proposant des places à d'autres.
-
-    Cycle de vie du statut :
-        open → closed   (fermeture manuelle par le provider)
-        open → cancelled (annulation)
-    Les formations terminées (ends_at dépassé) sont purgées par la tâche
-    de maintenance planifiée.
-
-    shared_seats   = nombre de places proposées à la mutualisation
-    available_seats = shared_seats − places confirmées (calculé à la volée)
+    Salle de réunion proposée par une Company (provider) à d'autres entreprises.
+    Même workflow que Training : publication → réservation → confirmation.
+    Table dédiée `rooms` pour séparer clairement les deux domaines.
     """
 
-    __tablename__ = "trainings"
+    __tablename__ = "rooms"
 
     id = db.Column(db.Integer, primary_key=True)
-    # Discriminant de mode : "training" (Avyro bleu) | "room" (Avyro vert)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
     location = db.Column(db.String(255), nullable=True)
     is_remote = db.Column(db.Boolean, default=False, nullable=False)
     contact_phone = db.Column(db.String(30), nullable=False)
+    reminder_sent = db.Column(db.Boolean, default=False, nullable=False)
 
     starts_at = db.Column(db.DateTime, nullable=False)
     ends_at = db.Column(db.DateTime, nullable=False)
 
-    # Places proposées à la mutualisation
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)
 
     shared_seats = db.Column(db.Integer, nullable=False, default=1)
     price_per_seat = db.Column(db.Numeric(10, 2), nullable=False, default=0)
-
-    # "open" | "closed" | "cancelled"
-    status = db.Column(
-        db.String(20), nullable=False, default="open", index=True
-    )
-
-    # True une fois le mail de rappel envoyé (idempotence, anti-doublon)
-    reminder_sent = db.Column(db.Boolean, default=False, nullable=False)
+    status = db.Column(db.String(20), nullable=False, default="open", index=True)
 
     provider_id = db.Column(
         db.Integer, db.ForeignKey("companies.id"), nullable=False, index=True
     )
-    provider = db.relationship("Company", back_populates="trainings")
+    provider = db.relationship("Company", back_populates="rooms")
     bookings = db.relationship(
         "Booking",
-        back_populates="training",
+        back_populates="room",
         cascade="all, delete-orphan",
-        # Chargement lazy par défaut ; utiliser joinedload() si besoin de perf
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<Training id={self.id} kind={self.kind!r} "
-            f"title={self.title!r} status={self.status!r}>"
-        )
-
-    # ── Propriétés calculées ─────────────────────────────────────────────────
+        return f"<Room id={self.id} title={self.title!r} status={self.status!r}>"
 
     @hybrid_property
     def booked_seats(self) -> int:
-        """
-        Nombre de places confirmées.
-
-        Version Python (instance) : itère les bookings chargés.
-        Version SQL (expression)  : sous-requête corrélée — utilisée par
-        les filtres/tris SQLAlchemy pour éviter des requêtes Python N+1.
-        """
-        return sum(
-            b.seats for b in self.bookings if b.status == "confirmed"
-        )
+        return sum(b.seats for b in self.bookings if b.status == "confirmed")
 
     @booked_seats.expression  # type: ignore[no-redef]
     def booked_seats(cls):  # noqa: N805
@@ -92,10 +56,7 @@ class Training(TimestampMixin, db.Model):
 
         return (
             select(func.coalesce(func.sum(Booking.seats), 0))
-            .where(
-                Booking.training_id == cls.id,
-                Booking.status == "confirmed",
-            )
+            .where(Booking.room_id == cls.id, Booking.status == "confirmed")
             .correlate(cls)
             .scalar_subquery()
         )
@@ -109,7 +70,6 @@ class Training(TimestampMixin, db.Model):
         return [b for b in self.bookings if b.status == "confirmed"]
 
     def attendees(self) -> list[dict]:
-        """Liste des inscrits confirmés (pour emails de rappel et rapports)."""
         return [
             {
                 "company_name": b.company.name,
@@ -123,7 +83,7 @@ class Training(TimestampMixin, db.Model):
     def to_dict(self) -> dict:
         return {
             "id": self.id,
-            "kind": "training",
+            "kind": "room",
             "title": self.title,
             "description": self.description,
             "location": self.location,

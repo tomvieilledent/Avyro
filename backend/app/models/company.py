@@ -22,9 +22,11 @@ class Company(TimestampMixin, db.Model):
 
     # Un seul admin par Company (le fondateur) ; plusieurs membres possibles
     users = db.relationship("User", back_populates="company")
-    # Formations/salles proposées par cette Company
     trainings = db.relationship(
         "Training", back_populates="provider", cascade="all, delete-orphan"
+    )
+    rooms = db.relationship(
+        "Room", back_populates="provider", cascade="all, delete-orphan"
     )
     # Réservations effectuées par cette Company
     bookings = db.relationship(
