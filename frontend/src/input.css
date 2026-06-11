@@ -33,7 +33,7 @@
 
 body {
   animation: avyro-fade-in 0.25s ease both;
-  @apply bg-white text-gray-900;
+  @apply text-gray-900;
 }
 .page-leave {
   animation: none;
