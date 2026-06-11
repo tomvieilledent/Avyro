@@ -28,8 +28,8 @@
             <stop offset="100%" stop-color="#CBD5E1" />
           </linearGradient>
         </defs>
-        <polygon id="diag-left" fill="url(#blueGrad)" />
-        <polygon id="diag-right" fill="url(#roomGrad)" />
+        <polygon id="diag-left" fill="url(#blueGrad)" style="transition: filter 0.4s;" />
+        <polygon id="diag-right" fill="url(#roomGrad)" style="transition: filter 0.4s;" />
       </svg>
       <!--
         Script de diagonale SVG :
@@ -81,7 +81,7 @@
         <div class="flex flex-row items-center w-full" style="padding: 0 3vw; gap: 3vw; position: relative;">
 
           <!-- Avyro Training (gauche) — carte seule -->
-          <div id="card-training" style="flex: 0 0 15vw; cursor:pointer; transition: opacity 0.3s, filter 0.3s;">
+          <div id="card-training" style="flex: 0 0 15vw; cursor:pointer; transition: opacity 0.4s, filter 0.4s;">
             <div class="bg-white rounded-2xl shadow-xl p-4 w-full">
               <img src="assets/logo-training2.svg" alt="Avyro Training" class="w-full" />
             </div>
@@ -96,14 +96,14 @@
           />
 
           <!-- Avyro Room (droite) — carte seule -->
-          <div id="card-room" style="flex: 0 0 15vw; cursor:pointer; transition: opacity 0.3s, filter 0.3s;">
+          <div id="card-room" style="flex: 0 0 15vw; cursor:pointer; transition: opacity 0.4s, filter 0.4s;">
             <div class="rounded-2xl shadow-xl p-4 w-full" style="background: linear-gradient(to bottom, #1d4ed8, #3b82f6);">
               <img src="assets/logo-room2.svg" alt="Avyro Room" class="w-full" />
             </div>
           </div>
 
           <!-- Description gauche — ancrée au bas du row container (= bas de la photo) -->
-          <div id="desc-training" style="position: absolute; top: calc(100% + 0.75rem); left: 3vw; width: 22.5vw; display: flex; flex-direction: column; gap: 0.75rem; transition: filter 0.3s;">
+          <div id="desc-training" style="position: absolute; top: calc(100% + 0.75rem); left: 3vw; width: 22.5vw; display: flex; flex-direction: column; gap: 0.75rem; transition: filter 0.4s;">
             <div class="flex items-center gap-2 rounded-full bg-white/20 px-3 py-1.5" style="width: fit-content;">
               <span class="text-xs font-semibold text-white">Formations</span>
             </div>
@@ -114,7 +114,7 @@
           </div>
 
           <!-- Description droite — ancrée au bas du row container (= bas de la photo) -->
-          <div id="desc-room" style="position: absolute; top: calc(100% + 0.75rem); right: 3vw; width: 22.5vw; display: flex; flex-direction: column; align-items: flex-end; gap: 0.75rem; transition: filter 0.3s;">
+          <div id="desc-room" style="position: absolute; top: calc(100% + 0.75rem); right: 3vw; width: 22.5vw; display: flex; flex-direction: column; align-items: flex-end; gap: 0.75rem; transition: filter 0.4s;">
             <div class="flex items-center gap-2 rounded-full px-3 py-1.5" style="background-color: #e5e7eb; width: fit-content;">
               <span class="text-xs font-semibold" style="color: #374151">Salles de réunion</span>
             </div>
