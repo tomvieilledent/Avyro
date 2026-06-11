@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" class="h-full m-0">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,89 +12,31 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="dist/styles.css" />
-    <style>
-      html,
-      body {
-        height: 100%;
-        margin: 0;
-      }
-      body {
-        background: #f8fafc;
-      }
-      .app-header {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 60px;
-        z-index: 30;
-        background: #1e3a8a;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 1.5rem;
-        box-shadow: 0 2px 12px rgba(15, 23, 62, 0.22);
-      }
-      .logo-text {
-        color: #fff;
-        font-size: 1.125rem;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-        text-decoration: none;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .hbtn {
-        display: inline-flex;
-        align-items: center;
-        border: 1px solid rgba(255, 255, 255, 0.4);
-        color: #fff;
-        background: transparent;
-        border-radius: 7px;
-        padding: 5px 13px;
-        font-size: 0.8125rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: background 0.15s;
-        text-decoration: none;
-      }
-      .hbtn:hover {
-        background: rgba(255, 255, 255, 0.12);
-      }
-      .app-main {
-        padding-top: 80px;
-        max-width: 900px;
-        margin: 0 auto;
-        padding-bottom: 3rem;
-        padding-left: 1.5rem;
-        padding-right: 1.5rem;
-      }
-    </style>
   </head>
-  <body>
-    <header class="app-header">
-      <a href="dashboard.html" class="logo-text">
-        <img src="assets/mark-training.svg" alt="" style="height: 28px; width: 28px" />
+  <body class="h-full m-0 bg-[#f8fafc]">
+    <header
+      class="fixed top-0 left-0 w-full h-[60px] z-30 flex items-center justify-between px-6 bg-[#1e3a8a] [box-shadow:0_2px_12px_rgba(15,23,62,0.22)]"
+    >
+      <a
+        href="dashboard.html"
+        class="text-white text-lg font-bold tracking-[-0.02em] no-underline flex items-center gap-2"
+      >
+        <img src="assets/mark-training.svg" alt="" class="h-7 w-7" />
         Avyro
       </a>
-      <a href="javascript:history.back()" class="hbtn">← Retour</a>
+      <a
+        href="javascript:history.back()"
+        class="inline-flex items-center border border-white/40 text-white bg-transparent rounded-[7px] py-[5px] px-[13px] text-[0.8125rem] font-medium cursor-pointer transition-[background] duration-150 no-underline hover:bg-white/[0.12]"
+        >← Retour</a
+      >
     </header>
 
-    <main class="app-main">
+    <main class="pt-20 max-w-[900px] mx-auto pb-12 px-6">
       <div id="loading" class="text-sm text-gray-500">Chargement…</div>
 
-      <div id="content" style="display: none">
+      <div id="content" class="hidden">
         <div class="card mb-6">
-          <div
-            style="
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              flex-wrap: wrap;
-              gap: 1rem;
-            "
-          >
+          <div class="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h1 id="co-name" class="text-2xl font-bold text-gray-900"></h1>
               <p id="co-kind" class="mt-1 text-sm text-gray-500"></p>
@@ -103,8 +45,7 @@
               <a
                 id="co-email"
                 href="#"
-                class="hbtn"
-                style="border-color: #1d4ed8; color: #1d4ed8; background: #eff6ff"
+                class="inline-flex items-center border border-[#1d4ed8] text-avyro-600 bg-[#eff6ff] rounded-[7px] py-[5px] px-[13px] text-[0.8125rem] font-medium no-underline"
                 >Contacter</a
               >
             </div>
@@ -139,7 +80,7 @@
             <p class="text-sm text-gray-500 mt-0.5">${fmtDate(t.starts_at)} · ${t.is_remote ? "À distance" : t.location || "—"}</p>
             <p class="text-sm text-gray-600 mt-1">${t.available_seats} place(s) · ${t.price_per_seat} €/place</p>
           </div>
-          <a href="dashboard.html" class="btn-primary" style="flex-shrink:0;font-size:0.8125rem;padding:6px 14px;">Réserver</a>`;
+          <a href="dashboard.html" class="btn-primary shrink-0 text-[0.8125rem] px-[14px] py-[6px]">Réserver</a>`;
         list.appendChild(el);
       }
 
@@ -147,7 +88,7 @@
         try {
           const data = await Avyro.api(`/companies/${companyId}/offerings`);
           document.getElementById("loading").style.display = "none";
-          document.getElementById("content").style.display = "";
+          document.getElementById("content").classList.remove("hidden");
 
           document.getElementById("co-name").textContent = data.company.name;
           document.getElementById("co-kind").textContent =

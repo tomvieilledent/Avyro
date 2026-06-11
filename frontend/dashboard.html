@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" class="h-full m-0 overflow-hidden">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,703 +12,121 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="dist/styles.css" />
-    <style>
-      html,
-      body {
-        height: 100%;
-        margin: 0;
-        overflow: hidden;
-      }
-
-      /* ── Base ──────────────────────────────────────────── */
-      body {
-        background: #eef6ff;
-      }
-      body.mode-room {
-        background: #f8fafc;
-      }
-
-      /* ── Décorations latérales ─────────────────────────── */
-      #deco-left,
-      #deco-right {
-        position: fixed;
-        top: 60px;
-        bottom: 36px;
-        width: clamp(120px, 12vw, 220px);
-        pointer-events: none;
-        z-index: 0;
-        overflow: hidden;
-      }
-      #deco-left {
-        left: 0;
-      }
-      #deco-right {
-        right: 0;
-      }
-      #deco-left img,
-      #deco-right img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        object-position: center top;
-        display: block;
-        transition:
-          opacity 0.4s ease,
-          filter 0.4s ease;
-      }
-      /* Training mode : gauche vive, droite blanchie */
-      body:not(.mode-room) #deco-left img {
-        opacity: 0.72;
-        filter: none;
-      }
-      body:not(.mode-room) #deco-right img {
-        opacity: 0.18;
-        filter: grayscale(1) brightness(1.6);
-      }
-      /* Room mode : droite vive, gauche blanchie */
-      body.mode-room #deco-right img {
-        opacity: 0.72;
-        filter: none;
-      }
-      body.mode-room #deco-left img {
-        opacity: 0.18;
-        filter: grayscale(1) brightness(1.6);
-      }
-
-      /* ── Header ────────────────────────────────────────── */
-      .app-header {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 60px;
-        z-index: 30;
-        background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 1.5rem;
-        box-shadow: 0 2px 12px rgba(29, 78, 216, 0.28);
-      }
-      body.mode-room .app-header {
-        background: #ffffff;
-        border-bottom: 1px solid #e2e8f0;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-      }
-      .logo-text {
-        color: #fff;
-        font-size: 1.125rem;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-      }
-      body.mode-room .logo-text {
-        color: #0f172a;
-      }
-      .h-sep {
-        width: 1px;
-        height: 20px;
-        background: rgba(255, 255, 255, 0.2);
-        flex-shrink: 0;
-      }
-      body.mode-room .h-sep {
-        background: #e2e8f0;
-      }
-
-      /* Mode toggle */
-      .mode-pill {
-        background: rgba(255, 255, 255, 0.12);
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        border-radius: 9999px;
-        padding: 3px;
-        display: flex;
-      }
-      body.mode-room .mode-pill {
-        background: #f1f5f9;
-        border-color: #e2e8f0;
-      }
-      .mode-seg {
-        border-radius: 9999px;
-        padding: 4px 14px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: rgba(255, 255, 255, 0.55);
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        transition: all 0.15s ease;
-        white-space: nowrap;
-        line-height: 1.4;
-      }
-      body.mode-room .mode-seg {
-        color: #64748b;
-      }
-      .mode-seg.bg-white {
-        background: #fff !important;
-        color: #1d4ed8 !important;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
-      }
-      .mode-seg.text-white\/80 {
-        color: rgba(255, 255, 255, 0.55) !important;
-      }
-      .mode-seg.text-avyro-700 {
-        color: #1d4ed8 !important;
-      }
-      body.mode-room .mode-seg.bg-white {
-        color: #1d4ed8 !important;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-      }
-      body.mode-room .mode-seg.text-white\/80 {
-        color: #64748b !important;
-      }
-      body.mode-room .mode-seg.text-avyro-700 {
-        color: #1d4ed8 !important;
-      }
-
-      /* Header buttons */
-      .hbtn {
-        display: inline-flex;
-        align-items: center;
-        border: 1px solid rgba(255, 255, 255, 0.4);
-        color: #fff;
-        background: transparent;
-        border-radius: 7px;
-        padding: 5px 13px;
-        font-size: 0.8125rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: background 0.15s ease;
-        text-decoration: none;
-        line-height: 1.4;
-        white-space: nowrap;
-      }
-      .hbtn:hover {
-        background: rgba(255, 255, 255, 0.12);
-      }
-      body.mode-room .hbtn {
-        border-color: #e2e8f0;
-        color: #374151;
-      }
-      body.mode-room .hbtn:hover {
-        background: #f3f4f6;
-      }
-      #who {
-        color: rgba(255, 255, 255, 0.75);
-        font-size: 0.875rem;
-        text-decoration: none;
-        max-width: 180px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        transition: color 0.1s;
-      }
-      #who:hover {
-        color: #fff;
-      }
-      body.mode-room #who {
-        color: #374151;
-      }
-      body.mode-room #who:hover {
-        color: #0f172a;
-      }
-
-      /* ── Main scroll area ──────────────────────────────── */
-      .app-main {
-        position: fixed;
-        top: 60px;
-        left: 0;
-        width: 100%;
-        height: calc(100vh - 96px);
-        overflow-y: auto;
-      }
-      .app-content {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 0 1.5rem 2.5rem;
-      }
-
-      /* ── Sticky tab bar ────────────────────────────────── */
-      .tab-bar {
-        position: sticky;
-        top: 0;
-        z-index: 20;
-        background: #eef6ff;
-        padding-top: 1.5rem;
-      }
-      body.mode-room .tab-bar {
-        background: #f8fafc;
-      }
-
-      .tab-nav {
-        display: flex;
-        overflow-x: auto;
-        border-bottom: 2px solid #bfdbfe;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-      }
-      .tab-nav::-webkit-scrollbar {
-        display: none;
-      }
-      body.mode-room .tab-nav {
-        border-bottom-color: #e2e8f0;
-      }
-
-      .tab {
-        padding: 10px 18px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #64748b;
-        background: transparent;
-        border: none;
-        border-bottom: 2px solid transparent;
-        margin-bottom: -2px;
-        cursor: pointer;
-        white-space: nowrap;
-        transition:
-          color 0.15s,
-          border-color 0.15s;
-        outline: none;
-        flex-shrink: 0;
-      }
-      .tab:hover {
-        color: #1d4ed8;
-      }
-      .tab.border-b-2,
-      .tab.text-avyro-600 {
-        color: #1d4ed8;
-        border-bottom-color: #1d4ed8;
-        font-weight: 600;
-      }
-
-      /* ── Panel spacing ─────────────────────────────────── */
-      [data-panel] {
-        padding-top: 1.75rem;
-      }
-
-      /* ── Panel header ──────────────────────────────────── */
-      .panel-hd {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 1rem;
-        margin-bottom: 1.25rem;
-        flex-wrap: wrap;
-      }
-      .panel-hd h2 {
-        font-size: 0.9375rem;
-        font-weight: 700;
-        color: #0f172a;
-        margin: 0 0 0.2rem;
-        line-height: 1.3;
-      }
-      .panel-hd p {
-        font-size: 0.8125rem;
-        color: #64748b;
-        margin: 0;
-      }
-
-      /* ── Cards ─────────────────────────────────────────── */
-      .card {
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-        background: #fff;
-        padding: 1.25rem;
-        box-shadow:
-          0 1px 2px rgba(0, 0, 0, 0.04),
-          0 1px 4px rgba(0, 0, 0, 0.03);
-        transition:
-          box-shadow 0.18s ease,
-          transform 0.18s ease;
-      }
-      .card:hover {
-        box-shadow:
-          0 4px 16px rgba(29, 78, 216, 0.08),
-          0 2px 6px rgba(0, 0, 0, 0.04);
-        transform: translateY(-1px);
-      }
-      body.mode-room .card:hover {
-        box-shadow:
-          0 4px 16px rgba(0, 0, 0, 0.07),
-          0 2px 6px rgba(0, 0, 0, 0.04);
-      }
-
-      /* ── Grids ─────────────────────────────────────────── */
-      .content-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 1rem;
-      }
-      @media (min-width: 600px) {
-        .content-grid {
-          grid-template-columns: repeat(2, 1fr);
-          gap: 1.125rem;
-        }
-      }
-
-      /* ── List views ─────────────────────────────────────── */
-      .content-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-      }
-
-      /* ── Search bar ─────────────────────────────────────── */
-      .search-wrap {
-        position: relative;
-        flex: 1;
-        min-width: 180px;
-      }
-      .search-wrap svg {
-        position: absolute;
-        left: 0.75rem;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 15px;
-        height: 15px;
-        color: #94a3b8;
-        pointer-events: none;
-      }
-      #search {
-        padding-left: 2.25rem !important;
-      }
-
-      /* ── Geo filter bar ─────────────────────────────────── */
-      .filter-bar {
-        display: flex;
-        align-items: center;
-        gap: 0.625rem;
-        flex-wrap: wrap;
-        margin-bottom: 1.25rem;
-      }
-      .geo-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.375rem;
-        padding: 0.4375rem 0.875rem;
-        border-radius: 7px;
-        font-size: 0.8125rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.15s ease;
-        white-space: nowrap;
-        border: 1px solid #e2e8f0;
-        background: #fff;
-        color: #374151;
-        flex-shrink: 0;
-      }
-      .geo-btn:hover {
-        background: #f8fafc;
-        border-color: #cbd5e1;
-      }
-      .geo-btn.active {
-        background: #eff6ff;
-        border-color: #bfdbfe;
-        color: #1d4ed8;
-      }
-      .geo-btn svg {
-        width: 14px;
-        height: 14px;
-        flex-shrink: 0;
-      }
-      .geo-select {
-        padding: 0.4375rem 0.625rem;
-        border-radius: 7px;
-        border: 1px solid #e2e8f0;
-        background: #fff;
-        font-size: 0.8125rem;
-        color: #374151;
-        cursor: pointer;
-        outline: none;
-        transition: border-color 0.15s;
-      }
-      .geo-select:focus {
-        border-color: #93c5fd;
-      }
-      .geo-status {
-        display: flex;
-        align-items: center;
-        gap: 0.375rem;
-        font-size: 0.8125rem;
-        color: #1d4ed8;
-        background: #eff6ff;
-        border: 1px solid #bfdbfe;
-        border-radius: 7px;
-        padding: 0.375rem 0.75rem;
-        margin-bottom: 1rem;
-      }
-      .geo-status svg {
-        width: 13px;
-        height: 13px;
-        flex-shrink: 0;
-      }
-      .geo-reset {
-        background: none;
-        border: none;
-        cursor: pointer;
-        color: #64748b;
-        font-size: 0.8125rem;
-        padding: 0 0.25rem;
-        line-height: 1;
-      }
-      .geo-reset:hover {
-        color: #0f172a;
-      }
-      /* Distance badge sur les cartes */
-      .dist-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.25rem;
-        background: #eff6ff;
-        color: #1d4ed8;
-        border-radius: 9999px;
-        padding: 0.125rem 0.5rem;
-        font-size: 0.6875rem;
-        font-weight: 600;
-      }
-
-      /* ── Reports table ──────────────────────────────────── */
-      .r-table {
-        width: 100%;
-        text-align: left;
-        font-size: 0.8125rem;
-        border-collapse: collapse;
-      }
-      .r-table th {
-        padding: 0 1rem 0.5rem 0;
-        font-weight: 600;
-        font-size: 0.6875rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: #94a3b8;
-        border-bottom: 1px solid #f1f5f9;
-      }
-      .r-table td {
-        padding: 0.625rem 1rem 0.625rem 0;
-        border-bottom: 1px solid #f8fafc;
-        color: #374151;
-      }
-      .r-table tr:last-child td {
-        border-bottom: none;
-      }
-
-      /* ── Modal ──────────────────────────────────────────── */
-      #modal {
-        backdrop-filter: blur(2px);
-      }
-      .modal-inner {
-        background: #fff;
-        border-radius: 16px;
-        border: 1px solid #e2e8f0;
-        box-shadow:
-          0 24px 64px rgba(15, 23, 62, 0.14),
-          0 4px 16px rgba(15, 23, 62, 0.06);
-        width: 100%;
-        max-width: 520px;
-        max-height: 90vh;
-        overflow-y: auto;
-      }
-      .modal-head {
-        padding: 1.25rem 1.5rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-        background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
-        border-radius: 16px 16px 0 0;
-      }
-      .modal-body {
-        padding: 1.5rem;
-      }
-
-      /* ── Footer ─────────────────────────────────────────── */
-      .app-footer {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        height: 36px;
-        z-index: 30;
-        background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
-        font-size: 0.75rem;
-        font-weight: 400;
-        color: rgba(255, 255, 255, 0.55);
-        letter-spacing: 0.01em;
-      }
-      .app-footer p,
-      .app-footer span {
-        margin: 0;
-        font-size: inherit;
-        font-weight: inherit;
-        color: inherit;
-      }
-      .footer-center {
-        flex: 1;
-        text-align: center;
-      }
-      .footer-right {
-        position: absolute;
-        right: 2rem;
-      }
-      body.mode-room .app-footer {
-        background: #fff;
-        border-top: 1px solid #e2e8f0;
-        color: #94a3b8;
-      }
-      body.mode-room #mode-desc {
-        color: #1d4ed8;
-      }
-
-      /* ── Toast ──────────────────────────────────────────── */
-      #toast {
-        position: fixed;
-        bottom: 52px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 60;
-        padding: 0.6875rem 1.125rem;
-        border-radius: 8px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-        white-space: nowrap;
-        max-width: 90vw;
-        text-align: center;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.25s ease;
-      }
-      #toast.toast-success {
-        background: #f0fdf4;
-        color: #166534;
-        border: 1px solid #bbf7d0;
-        opacity: 1;
-        pointer-events: auto;
-      }
-      body.mode-room #book-modal-head {
-        background: #fff !important;
-        border-bottom: 1px solid #e2e8f0;
-      }
-      body.mode-room #book-modal-head p {
-        color: #94a3b8 !important;
-      }
-      body.mode-room #book-modal-head h3 {
-        color: #0f172a !important;
-      }
-      #toast.toast-error {
-        background: #fef2f2;
-        color: #991b1b;
-        border: 1px solid #fecaca;
-        opacity: 1;
-        pointer-events: auto;
-      }
-      #toast.toast-hidden {
-        opacity: 0;
-        pointer-events: none;
-      }
-
-      /* ── Responsive ─────────────────────────────────────── */
-      @media (max-width: 480px) {
-        .app-header {
-          padding: 0 1rem;
-        }
-        .app-content {
-          padding: 0 0.875rem 2rem;
-        }
-        .tab {
-          padding: 9px 11px;
-          font-size: 0.8125rem;
-        }
-        .hbtn {
-          padding: 5px 10px;
-          font-size: 0.75rem;
-        }
-        .modal-inner {
-          border-radius: 12px;
-        }
-        .modal-head {
-          border-radius: 12px 12px 0 0;
-        }
-      }
-    </style>
   </head>
-  <body class="text-gray-900">
-    <div id="deco-left" aria-hidden="true">
+  <body class="h-full m-0 overflow-hidden text-gray-900 bg-[#eef6ff]">
+    <div
+      id="deco-left"
+      aria-hidden="true"
+      class="fixed top-[60px] bottom-[36px] left-0 w-[clamp(120px,12vw,220px)] pointer-events-none z-0 overflow-hidden"
+    >
       <img src="assets/deco-training.svg" alt="" />
     </div>
-    <div id="deco-right" aria-hidden="true">
+    <div
+      id="deco-right"
+      aria-hidden="true"
+      class="fixed top-[60px] bottom-[36px] right-0 w-[clamp(120px,12vw,220px)] pointer-events-none z-0 overflow-hidden"
+    >
       <img src="assets/deco-room-right.svg" alt="" />
     </div>
+
     <!-- ══════════════════════ HEADER ══════════════════════ -->
-    <header class="app-header">
-      <div style="display: flex; align-items: center; gap: 0.875rem; min-width: 0">
-        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0">
-          <img
-            id="brand-mark"
-            src="assets/mark-training.svg"
-            alt=""
-            style="height: 28px; width: 28px"
-          />
-          <span class="logo-text">Avyro</span>
+    <header
+      class="app-header fixed top-0 left-0 w-full h-[60px] z-30 flex items-center justify-between px-6 [background:linear-gradient(135deg,#1d4ed8_0%,#3b82f6_100%)] [box-shadow:0_2px_12px_rgba(29,78,216,0.28)]"
+    >
+      <div class="flex items-center gap-[0.875rem] min-w-0">
+        <div class="flex items-center gap-2 shrink-0">
+          <img id="brand-mark" src="assets/mark-training.svg" alt="" class="h-7 w-7" />
+          <span class="logo-text text-white text-lg font-bold tracking-[-0.02em]">Avyro</span>
         </div>
-        <div class="h-sep"></div>
-        <div class="mode-pill">
-          <button type="button" data-mode="training" class="mode-seg">Training</button>
-          <button type="button" data-mode="room" class="mode-seg">Room</button>
+        <div class="h-sep w-px h-5 bg-white/20 shrink-0"></div>
+        <div
+          class="mode-pill flex p-[3px] bg-white/[0.12] border border-white/[0.18] rounded-full"
+        >
+          <button
+            type="button"
+            data-mode="training"
+            class="mode-seg rounded-full py-[4px] px-[14px] text-[0.8rem] font-semibold text-white/55 bg-transparent border-none cursor-pointer transition-all duration-150 whitespace-nowrap leading-[1.4]"
+          >
+            Training
+          </button>
+          <button
+            type="button"
+            data-mode="room"
+            class="mode-seg rounded-full py-[4px] px-[14px] text-[0.8rem] font-semibold text-white/55 bg-transparent border-none cursor-pointer transition-all duration-150 whitespace-nowrap leading-[1.4]"
+          >
+            Room
+          </button>
         </div>
       </div>
-      <div
-        id="guest-actions"
-        style="display: none; align-items: center; gap: 0.5rem; flex-shrink: 0"
-      >
-        <a href="register.html" class="hbtn">Créer un compte</a>
-        <a id="guest-login-btn" href="login.html" class="hbtn">Se connecter</a>
+      <div id="guest-actions" class="hidden items-center gap-2 shrink-0">
+        <a href="register.html" class="hbtn inline-flex items-center border border-white/40 text-white bg-transparent rounded-[7px] py-[5px] px-[13px] text-[0.8125rem] font-medium cursor-pointer transition-[background] duration-150 no-underline leading-[1.4] whitespace-nowrap hover:bg-white/[0.12]">Créer un compte</a>
+        <a id="guest-login-btn" href="login.html" class="hbtn inline-flex items-center border border-white/40 text-white bg-transparent rounded-[7px] py-[5px] px-[13px] text-[0.8125rem] font-medium cursor-pointer transition-[background] duration-150 no-underline leading-[1.4] whitespace-nowrap hover:bg-white/[0.12]">Se connecter</a>
       </div>
-      <div
-        id="auth-actions"
-        style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0"
-      >
-        <a href="profile.html" id="who" class="hidden sm:inline"></a>
-        <a href="profile.html" class="hbtn">Profil</a>
-        <button id="logout" class="hbtn">Déconnexion</button>
+      <div id="auth-actions" class="flex items-center gap-2 shrink-0">
+        <a href="profile.html" id="who" class="hidden sm:inline text-white/75 text-sm no-underline max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap transition-[color] duration-100 hover:text-white"></a>
+        <a href="profile.html" class="hbtn inline-flex items-center border border-white/40 text-white bg-transparent rounded-[7px] py-[5px] px-[13px] text-[0.8125rem] font-medium cursor-pointer transition-[background] duration-150 no-underline leading-[1.4] whitespace-nowrap hover:bg-white/[0.12]">Profil</a>
+        <button id="logout" class="hbtn inline-flex items-center border border-white/40 text-white bg-transparent rounded-[7px] py-[5px] px-[13px] text-[0.8125rem] font-medium cursor-pointer transition-[background] duration-150 leading-[1.4] whitespace-nowrap hover:bg-white/[0.12]">Déconnexion</button>
       </div>
     </header>
 
     <!-- ══════════════════════ MAIN ════════════════════════ -->
-    <main class="app-main">
-      <div class="app-content">
+    <main class="fixed top-[60px] left-0 w-full h-[calc(100vh-96px)] overflow-y-auto">
+      <div class="max-w-[1100px] mx-auto px-6 pb-10">
         <!-- ─── Tab bar (sticky) ──────────────────────────── -->
-        <div class="tab-bar">
-          <div class="tab-nav" role="tablist">
-            <button class="tab" data-tab="catalog" role="tab">Catalogue</button>
-            <button class="tab" data-tab="mine" role="tab">Mes formations</button>
-            <button class="tab" data-tab="bookings" role="tab">Mes réservations</button>
-            <button class="tab" data-tab="incoming" role="tab">
+        <div class="tab-bar sticky top-0 z-20 bg-[#eef6ff] pt-6">
+          <div
+            class="tab-nav flex overflow-x-auto border-b-2 border-[#bfdbfe]"
+            role="tablist"
+          >
+            <button
+              class="tab px-[18px] py-[10px] text-sm font-medium text-[#64748b] bg-transparent border-none border-b-2 border-transparent mb-[-2px] cursor-pointer whitespace-nowrap transition-[color,border-color] duration-150 outline-none shrink-0"
+              data-tab="catalog"
+              role="tab"
+            >
+              Catalogue
+            </button>
+            <button
+              class="tab px-[18px] py-[10px] text-sm font-medium text-[#64748b] bg-transparent border-none border-b-2 border-transparent mb-[-2px] cursor-pointer whitespace-nowrap transition-[color,border-color] duration-150 outline-none shrink-0"
+              data-tab="mine"
+              role="tab"
+            >
+              Mes formations
+            </button>
+            <button
+              class="tab px-[18px] py-[10px] text-sm font-medium text-[#64748b] bg-transparent border-none border-b-2 border-transparent mb-[-2px] cursor-pointer whitespace-nowrap transition-[color,border-color] duration-150 outline-none shrink-0"
+              data-tab="bookings"
+              role="tab"
+            >
+              Mes réservations
+            </button>
+            <button
+              class="tab px-[18px] py-[10px] text-sm font-medium text-[#64748b] bg-transparent border-none border-b-2 border-transparent mb-[-2px] cursor-pointer whitespace-nowrap transition-[color,border-color] duration-150 outline-none shrink-0"
+              data-tab="incoming"
+              role="tab"
+            >
               Demandes reçues
               <span
                 id="badge-incoming"
-                style="
-                  display: none;
-                  background: #ef4444;
-                  color: #fff;
-                  border-radius: 9999px;
-                  font-size: 0.65rem;
-                  font-weight: 700;
-                  padding: 1px 6px;
-                  margin-left: 4px;
-                  vertical-align: middle;
-                "
+                class="hidden bg-red-500 text-white rounded-full text-[0.65rem] font-bold py-[1px] px-[6px] ml-1 align-middle"
               ></span>
             </button>
-            <button class="tab" data-tab="reports" role="tab">Comptes rendus</button>
+            <button
+              class="tab px-[18px] py-[10px] text-sm font-medium text-[#64748b] bg-transparent border-none border-b-2 border-transparent mb-[-2px] cursor-pointer whitespace-nowrap transition-[color,border-color] duration-150 outline-none shrink-0"
+              data-tab="reports"
+              role="tab"
+            >
+              Comptes rendus
+            </button>
           </div>
         </div>
 
         <!-- ─── Catalogue ────────────────────────────────── -->
-        <section data-panel="catalog">
+        <section data-panel="catalog" class="pt-7">
           <!-- Barre recherche + géolocalisation -->
-          <div class="filter-bar">
-            <div class="search-wrap">
+          <div class="filter-bar flex items-center gap-[0.625rem] flex-wrap mb-5">
+            <div class="relative flex-1 min-w-[180px]">
               <svg
+                class="absolute left-3 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#94a3b8] pointer-events-none"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="2"
@@ -718,12 +136,12 @@
                 <circle cx="11" cy="11" r="8" />
                 <path d="m21 21-4.35-4.35" stroke-linecap="round" />
               </svg>
-              <input id="search" class="input" placeholder="Rechercher…" />
+              <input id="search" class="input pl-9" placeholder="Rechercher…" />
             </div>
-            <button type="button" id="toggle-filters" class="geo-btn" onclick="toggleAdvanced()">
+            <button type="button" id="toggle-filters" class="geo-btn inline-flex items-center gap-[0.375rem] py-[0.4375rem] px-[0.875rem] rounded-[7px] text-[0.8125rem] font-medium cursor-pointer transition-all duration-150 whitespace-nowrap border border-[#e2e8f0] bg-white text-[#374151] shrink-0" onclick="toggleAdvanced()">
               Filtres ▾
             </button>
-            <select id="tag-filter" class="geo-select" title="Filtrer par tag">
+            <select id="tag-filter" class="geo-select py-[0.4375rem] px-[0.625rem] rounded-[7px] border border-[#e2e8f0] bg-white text-[0.8125rem] text-[#374151] cursor-pointer outline-none transition-[border-color] duration-150" title="Filtrer par tag">
               <option value="">Tous les tags</option>
               <option value="IT">IT</option>
               <option value="management">Management</option>
@@ -734,15 +152,15 @@
               <option value="finance">Finance</option>
               <option value="juridique">Juridique</option>
             </select>
-            <button id="geo-btn" type="button" class="geo-btn" onclick="requestGeo()">
-              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <button id="geo-btn" type="button" class="geo-btn inline-flex items-center gap-[0.375rem] py-[0.4375rem] px-[0.875rem] rounded-[7px] text-[0.8125rem] font-medium cursor-pointer transition-all duration-150 whitespace-nowrap border border-[#e2e8f0] bg-white text-[#374151] shrink-0" onclick="requestGeo()">
+              <svg class="w-[14px] h-[14px] shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="3" />
                 <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
                 <circle cx="12" cy="12" r="8" stroke-dasharray="2 2" />
               </svg>
               Autour de moi
             </button>
-            <select id="geo-radius" class="geo-select" title="Rayon de recherche">
+            <select id="geo-radius" class="geo-select py-[0.4375rem] px-[0.625rem] rounded-[7px] border border-[#e2e8f0] bg-white text-[0.8125rem] text-[#374151] cursor-pointer outline-none transition-[border-color] duration-150" title="Rayon de recherche">
               <option value="5">5 km</option>
               <option value="10">10 km</option>
               <option value="25" selected>25 km</option>
@@ -753,62 +171,44 @@
           <!-- Filtres avancés (collapsibles) -->
           <div
             id="advanced-filters"
-            style="display: none; gap: 0.625rem; flex-wrap: wrap; margin-bottom: 0.625rem"
-            class="filter-bar"
+            class="filter-bar hidden flex items-center gap-[0.625rem] flex-wrap mb-[0.625rem]"
           >
-            <label
-              class="text-xs text-gray-500"
-              style="display: flex; align-items: center; gap: 4px"
-            >
-              Du <input id="f-date-from" type="date" class="geo-select" />
+            <label class="text-xs text-gray-500 flex items-center gap-1">
+              Du <input id="f-date-from" type="date" class="geo-select py-[0.4375rem] px-[0.625rem] rounded-[7px] border border-[#e2e8f0] bg-white text-[0.8125rem] text-[#374151] cursor-pointer outline-none" />
             </label>
-            <label
-              class="text-xs text-gray-500"
-              style="display: flex; align-items: center; gap: 4px"
-            >
-              Au <input id="f-date-to" type="date" class="geo-select" />
+            <label class="text-xs text-gray-500 flex items-center gap-1">
+              Au <input id="f-date-to" type="date" class="geo-select py-[0.4375rem] px-[0.625rem] rounded-[7px] border border-[#e2e8f0] bg-white text-[0.8125rem] text-[#374151] cursor-pointer outline-none" />
             </label>
-            <label
-              class="text-xs text-gray-500"
-              style="display: flex; align-items: center; gap: 4px"
-            >
+            <label class="text-xs text-gray-500 flex items-center gap-1">
               Prix max (€)
               <input
                 id="f-price-max"
                 type="number"
                 min="0"
                 step="1"
-                class="geo-select"
-                style="width: 80px"
+                class="geo-select w-[80px] py-[0.4375rem] px-[0.625rem] rounded-[7px] border border-[#e2e8f0] bg-white text-[0.8125rem] text-[#374151] cursor-pointer outline-none"
               />
             </label>
-            <label
-              class="text-xs text-gray-500"
-              style="display: flex; align-items: center; gap: 4px"
-            >
+            <label class="text-xs text-gray-500 flex items-center gap-1">
               Places min
               <input
                 id="f-seats-min"
                 type="number"
                 min="1"
                 step="1"
-                class="geo-select"
-                style="width: 70px"
+                class="geo-select w-[70px] py-[0.4375rem] px-[0.625rem] rounded-[7px] border border-[#e2e8f0] bg-white text-[0.8125rem] text-[#374151] cursor-pointer outline-none"
               />
             </label>
-            <label
-              class="text-xs text-gray-500"
-              style="display: flex; align-items: center; gap: 6px; cursor: pointer"
-            >
+            <label class="text-xs text-gray-500 flex items-center gap-[6px] cursor-pointer">
               <input id="f-remote" type="checkbox" /> À distance uniquement
             </label>
-            <button type="button" class="geo-btn" onclick="resetAdvanced()">Réinitialiser</button>
+            <button type="button" class="geo-btn inline-flex items-center gap-[0.375rem] py-[0.4375rem] px-[0.875rem] rounded-[7px] text-[0.8125rem] font-medium cursor-pointer transition-all duration-150 whitespace-nowrap border border-[#e2e8f0] bg-white text-[#374151] shrink-0" onclick="resetAdvanced()">Réinitialiser</button>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem">
+          <div class="flex items-center gap-2 mb-3">
             <button
               id="view-list"
-              class="geo-btn active"
+              class="geo-btn active inline-flex items-center gap-[0.375rem] py-[0.4375rem] px-[0.875rem] rounded-[7px] text-[0.8125rem] font-medium cursor-pointer transition-all duration-150 whitespace-nowrap border border-[#e2e8f0] bg-white text-[#374151] shrink-0"
               onclick="setView('list')"
               title="Vue liste"
             >
@@ -816,7 +216,7 @@
             </button>
             <button
               id="view-cal"
-              class="geo-btn"
+              class="geo-btn inline-flex items-center gap-[0.375rem] py-[0.4375rem] px-[0.875rem] rounded-[7px] text-[0.8125rem] font-medium cursor-pointer transition-all duration-150 whitespace-nowrap border border-[#e2e8f0] bg-white text-[#374151] shrink-0"
               onclick="setView('calendar')"
               title="Vue calendrier"
             >
@@ -824,17 +224,17 @@
             </button>
           </div>
           <div id="catalog-list" class="content-grid"></div>
-          <div id="catalog-calendar" style="display: none"></div>
+          <div id="catalog-calendar" class="hidden"></div>
         </section>
 
         <!-- ─── Mes formations ────────────────────────────── -->
-        <section data-panel="mine" class="hidden">
-          <div class="panel-hd">
+        <section data-panel="mine" class="hidden pt-7">
+          <div class="panel-hd flex items-start justify-between gap-4 mb-5 flex-wrap">
             <div>
               <h2>Mes offres publiées</h2>
               <p>Formations et salles que vous proposez à la mutualisation.</p>
             </div>
-            <button id="new-training" class="btn-primary" style="flex-shrink: 0">
+            <button id="new-training" class="btn-primary shrink-0">
               + Nouvelle formation
             </button>
           </div>
@@ -842,8 +242,8 @@
         </section>
 
         <!-- ─── Mes réservations ──────────────────────────── -->
-        <section data-panel="bookings" class="hidden">
-          <div class="panel-hd">
+        <section data-panel="bookings" class="hidden pt-7">
+          <div class="panel-hd flex items-start justify-between gap-4 mb-5 flex-wrap">
             <div>
               <h2>Mes réservations</h2>
               <p>Demandes de réservation effectuées par votre structure.</p>
@@ -853,8 +253,8 @@
         </section>
 
         <!-- ─── Demandes reçues ───────────────────────────── -->
-        <section data-panel="incoming" class="hidden">
-          <div class="panel-hd">
+        <section data-panel="incoming" class="hidden pt-7">
+          <div class="panel-hd flex items-start justify-between gap-4 mb-5 flex-wrap">
             <div>
               <h2>Demandes reçues</h2>
               <p>Réservations à confirmer ou refuser sur vos offres.</p>
@@ -864,8 +264,8 @@
         </section>
 
         <!-- ─── Comptes rendus ───────────────────────────── -->
-        <section data-panel="reports" class="hidden">
-          <div class="panel-hd">
+        <section data-panel="reports" class="hidden pt-7">
+          <div class="panel-hd flex items-start justify-between gap-4 mb-5 flex-wrap">
             <div>
               <h2>Comptes rendus</h2>
               <p>Inscrits confirmés — un email de rappel est envoyé 1 jour ouvré avant le début.</p>
@@ -879,29 +279,26 @@
     <!-- ══════════════════════ MODAL ═══════════════════════ -->
     <div
       id="modal"
-      class="fixed inset-0 z-50 hidden items-center justify-center overflow-y-auto bg-black/40 p-4"
+      class="fixed inset-0 z-50 hidden items-center justify-center overflow-y-auto bg-black/40 p-4 [backdrop-filter:blur(2px)]"
     >
-      <div class="modal-inner">
-        <div class="modal-head">
+      <div
+        class="modal-inner bg-white rounded-2xl border border-[#e2e8f0] [box-shadow:0_24px_64px_rgba(15,23,62,0.14),0_4px_16px_rgba(15,23,62,0.06)] w-full max-w-[520px] max-h-[90vh] overflow-y-auto"
+      >
+        <div
+          class="modal-head px-6 py-5 border-b border-white/15 [background:linear-gradient(135deg,#1d4ed8_0%,#3b82f6_100%)] rounded-t-2xl max-[480px]:rounded-t-xl"
+        >
           <h2
             id="modal-title"
-            style="
-              margin: 0;
-              font-size: 1rem;
-              font-weight: 600;
-              color: #fff;
-              letter-spacing: -0.01em;
-            "
+            class="m-0 text-base font-semibold text-white tracking-[-0.01em]"
           >
             Nouvelle formation
           </h2>
         </div>
-        <div class="modal-body">
+        <div class="modal-body p-6">
           <form id="training-form" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label
-              class="text-xs text-gray-500 sm:col-span-2"
-              style="display: flex; flex-direction: column; gap: 4px"
-              ><span>Titre <span style="color: #ef4444">*</span></span
+              class="text-xs text-gray-500 sm:col-span-2 flex flex-col gap-1"
+              ><span>Titre <span class="text-red-500">*</span></span
               ><input id="f-title" class="input" name="title" placeholder="Titre" required
             /></label>
             <input
@@ -911,13 +308,12 @@
               placeholder="Tags séparés par des virgules (ex: IT, management, sécurité)"
             />
             <textarea
-              class="input sm:col-span-2"
+              class="input sm:col-span-2 resize-y"
               name="description"
               placeholder="Description"
               rows="3"
-              style="resize: vertical"
             ></textarea>
-            <div class="sm:col-span-2" style="position: relative">
+            <div class="sm:col-span-2 relative">
               <input
                 id="f-addr-search"
                 class="input"
@@ -926,72 +322,37 @@
               />
               <div
                 id="f-addr-results"
-                style="
-                  display: none;
-                  position: absolute;
-                  top: calc(100% + 4px);
-                  left: 0;
-                  right: 0;
-                  z-index: 200;
-                  background: #fff;
-                  border: 1px solid #e2e8f0;
-                  border-radius: 8px;
-                  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-                  max-height: 220px;
-                  overflow-y: auto;
-                "
+                class="hidden absolute top-[calc(100%+4px)] left-0 right-0 z-[200] bg-white border border-[#e2e8f0] rounded-lg [box-shadow:0_4px_16px_rgba(0,0,0,0.12)] max-h-[220px] overflow-y-auto"
               ></div>
             </div>
             <input
               id="f-addr-line1"
-              class="input sm:col-span-2"
+              class="input sm:col-span-2 bg-[#e2e8f0] text-[#64748b] cursor-default pointer-events-none select-none"
               name="addr_line1"
               placeholder="Adresse"
               readonly
               tabindex="-1"
-              style="
-                background: #e2e8f0;
-                color: #64748b;
-                cursor: default;
-                pointer-events: none;
-                user-select: none;
-              "
             />
             <input
               id="f-cp"
-              class="input"
+              class="input bg-[#e2e8f0] text-[#64748b] cursor-default pointer-events-none select-none"
               name="postal_code"
               placeholder="Code postal"
               maxlength="10"
               readonly
               tabindex="-1"
-              style="
-                background: #e2e8f0;
-                color: #64748b;
-                cursor: default;
-                pointer-events: none;
-                user-select: none;
-              "
             />
             <input
               id="f-city"
-              class="input"
+              class="input bg-[#e2e8f0] text-[#64748b] cursor-default pointer-events-none select-none"
               name="city"
               placeholder="Ville"
               readonly
               tabindex="-1"
-              style="
-                background: #e2e8f0;
-                color: #64748b;
-                cursor: default;
-                pointer-events: none;
-                user-select: none;
-              "
             />
             <label
-              class="text-xs text-gray-500 sm:col-span-2"
-              style="display: flex; flex-direction: column; gap: 4px"
-              ><span>Numéro de contact <span style="color: #ef4444">*</span></span
+              class="text-xs text-gray-500 sm:col-span-2 flex flex-col gap-1"
+              ><span>Numéro de contact <span class="text-red-500">*</span></span
               ><input
                 class="input"
                 name="contact_phone"
@@ -999,28 +360,19 @@
                 placeholder="Numéro de contact"
                 required
             /></label>
-            <label
-              class="text-xs text-gray-500"
-              style="display: flex; flex-direction: column; gap: 4px"
-              ><span>Début <span style="color: #ef4444">*</span></span
+            <label class="text-xs text-gray-500 flex flex-col gap-1"
+              ><span>Début <span class="text-red-500">*</span></span
               ><input class="input" name="starts_at" type="datetime-local" required
             /></label>
-            <label
-              class="text-xs text-gray-500"
-              style="display: flex; flex-direction: column; gap: 4px"
-              ><span>Fin <span style="color: #ef4444">*</span></span
+            <label class="text-xs text-gray-500 flex flex-col gap-1"
+              ><span>Fin <span class="text-red-500">*</span></span
               ><input class="input" name="ends_at" type="datetime-local" required
             /></label>
-            <label
-              id="f-seats-label"
-              class="text-xs text-gray-500"
-              style="display: flex; flex-direction: column; gap: 4px"
-              ><span>Places proposées <span style="color: #ef4444">*</span></span
+            <label id="f-seats-label" class="text-xs text-gray-500 flex flex-col gap-1"
+              ><span>Places proposées <span class="text-red-500">*</span></span
               ><input class="input" name="shared_seats" type="number" min="1" required
             /></label>
-            <label
-              class="text-xs text-gray-500"
-              style="display: flex; flex-direction: column; gap: 4px"
+            <label class="text-xs text-gray-500 flex flex-col gap-1"
               >Prix / place (€)<input
                 class="input"
                 name="price_per_seat"
@@ -1041,78 +393,48 @@
     <!-- ══════════════════════ BOOKING MODAL ══════════════ -->
     <div
       id="book-modal"
-      class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4"
-      style="backdrop-filter: blur(2px)"
+      class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4 [backdrop-filter:blur(2px)]"
     >
       <div
-        style="
-          background: #fff;
-          border-radius: 16px;
-          border: 1px solid #e2e8f0;
-          box-shadow:
-            0 24px 64px rgba(15, 23, 62, 0.14),
-            0 4px 16px rgba(15, 23, 62, 0.06);
-          width: 100%;
-          max-width: 400px;
-          overflow: hidden;
-        "
+        class="bg-white rounded-2xl border border-[#e2e8f0] [box-shadow:0_24px_64px_rgba(15,23,62,0.14),0_4px_16px_rgba(15,23,62,0.06)] w-full max-w-[400px] overflow-hidden"
       >
         <div
           id="book-modal-head"
-          style="
-            padding: 1.25rem 1.5rem;
-            background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
-            border-radius: 16px 16px 0 0;
-          "
+          class="px-6 py-5 [background:linear-gradient(135deg,#1d4ed8_0%,#3b82f6_100%)] rounded-t-2xl"
         >
           <p
-            style="
-              margin: 0 0 0.2rem;
-              font-size: 0.6875rem;
-              font-weight: 600;
-              color: rgba(255, 255, 255, 0.65);
-              text-transform: uppercase;
-              letter-spacing: 0.07em;
-            "
+            class="m-0 mb-[0.2rem] text-[0.6875rem] font-semibold text-white/65 uppercase tracking-[0.07em]"
           >
             Réservation
           </p>
           <h3
             id="book-modal-title"
-            style="
-              margin: 0;
-              font-size: 1rem;
-              font-weight: 600;
-              color: #fff;
-              letter-spacing: -0.01em;
-            "
+            class="m-0 text-base font-semibold text-white tracking-[-0.01em]"
           ></h3>
         </div>
-        <div style="padding: 1.5rem">
+        <div class="p-6">
           <p
             id="book-modal-desc"
-            style="margin: 0 0 1rem; font-size: 0.875rem; color: #64748b; line-height: 1.5"
+            class="m-0 mb-4 text-sm text-[#64748b] leading-[1.5]"
           ></p>
           <form id="book-modal-form">
             <input
               id="book-seats-input"
-              class="input"
+              class="input mb-3"
               type="number"
               name="seats"
               min="1"
               value="1"
               required
-              style="margin-bottom: 0.75rem"
             />
             <textarea
               id="book-note-input"
-              class="input"
+              class="input resize-y mb-5"
               placeholder="Note pour le provider (optionnel)"
               maxlength="500"
               rows="3"
-              style="resize: vertical; margin-bottom: 1.25rem"
             ></textarea>
-            <div style="display: flex; justify-content: flex-end; gap: 0.5rem">
+            <div class="flex justify-end gap-2">
               <button type="button" id="book-modal-cancel" class="btn-ghost">Annuler</button>
               <button type="submit" class="btn-primary">Confirmer la réservation</button>
             </div>
@@ -1125,13 +447,13 @@
     <div id="toast" class="toast-hidden"><span id="toast-msg"></span></div>
 
     <!-- ══════════════════════ FOOTER ══════════════════════ -->
-    <footer class="app-footer">
-      <p id="mode-desc" class="footer-center"></p>
-      <span class="footer-right"
+    <footer
+      class="app-footer fixed bottom-0 left-0 w-full h-9 z-30 flex items-center justify-center border-t border-white/[0.08] text-xs font-normal text-white/55 tracking-[0.01em] [background:linear-gradient(135deg,#1d4ed8_0%,#3b82f6_100%)]"
+    >
+      <p id="mode-desc" class="flex-1 text-center"></p>
+      <span class="absolute right-8"
         >© 2026 AVYRO.
-        <a
-          href="privacy.html"
-          style="color: inherit; text-decoration: underline dotted; opacity: 0.7"
+        <a href="privacy.html" class="text-inherit underline decoration-dotted opacity-70"
           >Confidentialité</a
         ></span
       >

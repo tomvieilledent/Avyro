@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" class="h-full overflow-hidden">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,18 +12,11 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="dist/styles.css" />
-    <style>
-      html,
-      body {
-        height: 100%;
-        overflow: hidden;
-      }
-    </style>
   </head>
-  <body>
+  <body class="h-full overflow-hidden">
     <div class="relative h-screen overflow-hidden flex">
       <!-- Fond diagonal -->
-      <svg id="hero-svg" style="position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 0">
+      <svg id="hero-svg" class="fixed inset-0 w-screen h-screen z-0">
         <defs>
           <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="#1D4ED8" />
@@ -74,44 +67,40 @@
 
       <!-- Gauche : branding -->
       <div
-        class="relative z-10 flex flex-1 flex-col items-center justify-center py-12"
-        style="padding-left: 8vw; padding-right: 4vw"
+        class="relative z-10 flex flex-1 flex-col items-center justify-center py-12 pl-[8vw] pr-[4vw]"
       >
         <a href="index.html">
-          <div class="bg-white rounded-2xl shadow-xl p-4" style="width: 220px">
+          <div class="bg-white rounded-2xl shadow-xl p-4 w-[220px]">
             <img src="assets/logo-avyro.svg" alt="Avyro" class="w-full" />
           </div>
         </a>
-        <p class="mt-6 max-w-xs text-sm text-center" style="color: rgba(255, 255, 255, 0.75)">
+        <p class="mt-6 max-w-xs text-sm text-center text-white/75">
           La plateforme de mutualisation<br />entre entreprises
         </p>
       </div>
 
       <!-- Droite : formulaire -->
-      <div
-        class="relative z-10 flex flex-1 items-center justify-end"
-        style="height: 100vh; padding-right: 5vw"
-      >
+      <div class="relative z-10 flex flex-1 items-center justify-end h-screen pr-[5vw]">
         <div class="w-full max-w-sm">
           <h1 class="text-2xl font-bold text-gray-900 text-right">Créer un compte</h1>
           <p class="mt-1 text-sm text-gray-500 text-right">Rejoignez Avyro</p>
           <form id="form" class="mt-6 space-y-4">
             <div class="grid grid-cols-2 gap-3">
               <label class="flex flex-col gap-1 text-xs text-gray-500"
-                ><span>Prénom <span style="color: #ef4444">*</span></span
+                ><span>Prénom <span class="text-red-500">*</span></span
                 ><input class="input" name="first_name" placeholder="Prénom" required
               /></label>
               <label class="flex flex-col gap-1 text-xs text-gray-500"
-                ><span>Nom <span style="color: #ef4444">*</span></span
+                ><span>Nom <span class="text-red-500">*</span></span
                 ><input class="input" name="last_name" placeholder="Nom" required
               /></label>
             </div>
             <label class="flex flex-col gap-1 text-xs text-gray-500"
-              ><span>Email <span style="color: #ef4444">*</span></span
+              ><span>Email <span class="text-red-500">*</span></span
               ><input class="input" name="email" type="email" placeholder="Email" required
             /></label>
             <label class="flex flex-col gap-1 text-xs text-gray-500"
-              ><span>Téléphone <span style="color: #ef4444">*</span></span
+              ><span>Téléphone <span class="text-red-500">*</span></span
               ><input
                 class="input"
                 name="phone"
@@ -126,7 +115,7 @@
               placeholder="Tags de votre entreprise, séparés par des virgules (ex: IT, RH, sécurité)"
             />
             <label class="flex flex-col gap-1 text-xs text-gray-500"
-              ><span>Mot de passe <span style="color: #ef4444">*</span></span
+              ><span>Mot de passe <span class="text-red-500">*</span></span
               ><input
                 class="input"
                 name="password"
@@ -139,18 +128,18 @@
                 type="checkbox"
                 name="consent"
                 required
-                style="margin-top: 2px; flex-shrink: 0"
+                class="mt-0.5 shrink-0"
               />
               <span
                 >J'accepte la
                 <a
                   href="privacy.html"
                   target="_blank"
-                  style="color: #1d4ed8; text-decoration: underline"
+                  class="text-avyro-600 underline"
                   >politique de confidentialité</a
                 >
                 et le traitement de mes données personnelles conformément au RGPD.
-                <span style="color: #ef4444">*</span></span
+                <span class="text-red-500">*</span></span
               >
             </label>
             <p id="error" class="hidden text-sm text-red-600"></p>
@@ -158,22 +147,13 @@
           </form>
           <p class="mt-4 text-center text-sm text-gray-600">
             Déjà inscrit ?
-            <a href="login.html" class="font-medium" style="color: #1d4ed8">Se connecter</a>
+            <a href="login.html" class="font-medium text-avyro-600">Se connecter</a>
           </p>
         </div>
       </div>
     </div>
 
-    <span
-      style="
-        position: fixed;
-        bottom: 1rem;
-        right: 2rem;
-        font-size: 0.7rem;
-        color: rgba(30, 58, 138, 0.4);
-        letter-spacing: 0.01em;
-        z-index: 10;
-      "
+    <span class="fixed bottom-4 right-8 text-[0.7rem] text-[rgba(30,58,138,0.4)] tracking-[0.01em] z-10"
       >© 2026 AVYRO. Tous droits réservés.</span
     >
     <script src="src/api.js"></script>
@@ -191,19 +171,19 @@
         const err = document.getElementById("error");
         err.classList.add("hidden");
         try {
-          const body = Object.fromEntries(f.entries());
-          body.tags = (body.tags || "")
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean);
           const data = await Avyro.api("/auth/register", {
             method: "POST",
-            body,
+            body: Object.fromEntries(f.entries()),
           });
           Avyro.setSession(data);
           location.href = "dashboard.html";
         } catch (ex) {
-          err.textContent = ex.data?.message || JSON.stringify(ex.data?.messages || {}) || "Erreur";
+          const msgs = ex.data?.messages;
+          err.textContent = msgs
+            ? Object.entries(msgs)
+                .map(([k, v]) => `${k} : ${v}`)
+                .join(" | ")
+            : ex.data?.message || "Erreur lors de l'inscription";
           err.classList.remove("hidden");
         }
       });

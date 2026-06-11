@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" class="h-full overflow-hidden">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,18 +12,11 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="dist/styles.css" />
-    <style>
-      html,
-      body {
-        height: 100%;
-        overflow: hidden;
-      }
-    </style>
   </head>
-  <body>
+  <body class="h-full overflow-hidden">
     <div class="relative h-screen overflow-hidden flex">
       <!-- Fond diagonal -->
-      <svg id="hero-svg" style="position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 0">
+      <svg id="hero-svg" class="fixed inset-0 w-screen h-screen z-0">
         <defs>
           <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="#1D4ED8" />
@@ -73,11 +66,10 @@
 
       <!-- Gauche : branding -->
       <div
-        class="relative z-10 flex flex-1 flex-col items-center justify-center py-12"
-        style="padding-left: 8vw; padding-right: 4vw"
+        class="relative z-10 flex flex-1 flex-col items-center justify-center py-12 pl-[8vw] pr-[4vw]"
       >
         <a href="index.html">
-          <div class="bg-white rounded-2xl shadow-xl p-4" style="width: 220px">
+          <div class="bg-white rounded-2xl shadow-xl p-4 w-[220px]">
             <img src="assets/logo-avyro.svg" alt="Avyro" class="w-full" />
           </div>
         </a>
@@ -85,16 +77,13 @@
           id="company-label"
           class="mt-6 max-w-xs text-sm text-center font-semibold text-white"
         ></p>
-        <p class="mt-2 max-w-xs text-sm text-center" style="color: rgba(255, 255, 255, 0.75)">
+        <p class="mt-2 max-w-xs text-sm text-center text-white/75">
           vous invite à rejoindre Avyro
         </p>
       </div>
 
       <!-- Droite : formulaire -->
-      <div
-        class="relative z-10 flex flex-1 items-center justify-end"
-        style="height: 100vh; padding-right: 5vw"
-      >
+      <div class="relative z-10 flex flex-1 items-center justify-end h-screen pr-[5vw]">
         <div class="w-full max-w-sm">
           <h1 class="text-2xl font-bold text-gray-900 text-right">Rejoindre l'équipe</h1>
           <p id="invite-email-display" class="mt-1 text-sm text-gray-500 text-right"></p>
@@ -128,22 +117,13 @@
           </form>
           <p class="mt-4 text-center text-sm text-gray-600">
             Déjà inscrit ?
-            <a href="login.html" class="font-medium" style="color: #1d4ed8">Se connecter</a>
+            <a href="login.html" class="font-medium text-avyro-600">Se connecter</a>
           </p>
         </div>
       </div>
     </div>
 
-    <span
-      style="
-        position: fixed;
-        bottom: 1rem;
-        right: 2rem;
-        font-size: 0.7rem;
-        color: rgba(30, 58, 138, 0.4);
-        letter-spacing: 0.01em;
-        z-index: 10;
-      "
+    <span class="fixed bottom-4 right-8 text-[0.7rem] text-[rgba(30,58,138,0.4)] tracking-[0.01em] z-10"
       >© 2026 AVYRO. Tous droits réservés.</span
     >
     <script src="src/api.js"></script>
