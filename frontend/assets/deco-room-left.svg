@@ -1,0 +1,178 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 700" width="400" height="700" role="img" aria-label="Salle de réunion — vue gauche">
+  <defs>
+    <radialGradient id="rl-light" cx="0.5" cy="0.12" r="0.92">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.55" stop-color="#f0f2f5"/>
+      <stop offset="1" stop-color="#dde1e8"/>
+    </radialGradient>
+    <linearGradient id="rl-floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d8dde4"/>
+      <stop offset="1" stop-color="#bec4cc"/>
+    </linearGradient>
+    <linearGradient id="rl-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c8d8e8"/>
+      <stop offset="0.7" stop-color="#e8eef4"/>
+      <stop offset="1" stop-color="#f6f8fa"/>
+    </linearGradient>
+    <linearGradient id="rl-glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.28"/>
+    </linearGradient>
+    <linearGradient id="rl-table" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f0f3f6"/>
+      <stop offset="1" stop-color="#d4dae2"/>
+    </linearGradient>
+    <linearGradient id="rl-edge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a8b0bc"/>
+      <stop offset="1" stop-color="#8892a0"/>
+    </linearGradient>
+    <linearGradient id="rl-screen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#222830"/>
+      <stop offset="1" stop-color="#181c22"/>
+    </linearGradient>
+    <!-- Overlay blanc/gris froid — pas de couleur de marque -->
+    <linearGradient id="rl-overlay" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#1e2530" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#2c3340" stop-opacity="0.28"/>
+    </linearGradient>
+    <radialGradient id="rl-vignette" cx="0.5" cy="0.45" r="0.75">
+      <stop offset="0.5" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#0a0c10" stop-opacity="0.48"/>
+    </radialGradient>
+    <filter id="rl-soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+    <filter id="rl-softer" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="16"/>
+    </filter>
+    <clipPath id="rl-win"><rect x="20" y="52" width="360" height="158" rx="3"/></clipPath>
+  </defs>
+
+  <!-- Mur blanc -->
+  <rect x="0" y="0" width="400" height="520" fill="url(#rl-light)"/>
+  <!-- Lambris horizontal décoratif -->
+  <rect x="0" y="380" width="400" height="8" fill="#dce0e8"/>
+  <rect x="0" y="388" width="400" height="110" fill="#e8eaee"/>
+  <rect x="0" y="498" width="400" height="12" fill="#c4c8d0"/>
+  <rect x="0" y="510" width="400" height="190" fill="url(#rl-floor)"/>
+  <rect x="0" y="510" width="400" height="76" fill="#ffffff" opacity="0.09"/>
+
+  <!-- Baie vitrée -->
+  <g clip-path="url(#rl-win)">
+    <rect x="20" y="52" width="360" height="158" fill="url(#rl-sky)"/>
+    <g fill="#b0c4d4" opacity="0.55">
+      <rect x="44" y="146" width="46" height="64"/>
+      <rect x="114" y="118" width="38" height="92"/>
+      <rect x="178" y="148" width="60" height="62"/>
+      <rect x="278" y="124" width="52" height="86"/>
+      <rect x="354" y="140" width="38" height="70"/>
+    </g>
+    <rect x="20" y="52" width="360" height="158" fill="url(#rl-glass)"/>
+  </g>
+  <rect x="20" y="52" width="360" height="158" rx="3" fill="none" stroke="#bec8d4" stroke-width="6"/>
+  <g stroke="#c8d2dc" stroke-width="4">
+    <line x1="20" y1="130" x2="380" y2="130"/>
+    <line x1="110" y1="52" x2="110" y2="210"/>
+    <line x1="200" y1="52" x2="200" y2="210"/>
+    <line x1="290" y1="52" x2="290" y2="210"/>
+  </g>
+
+  <!-- Écran éteint (veille) -->
+  <g>
+    <ellipse cx="200" cy="292" rx="118" ry="13" fill="#1a1e26" opacity="0.14" filter="url(#rl-soft)"/>
+    <rect x="78" y="248" width="244" height="156" rx="10" fill="#15181e"/>
+    <rect x="90" y="260" width="220" height="132" rx="6" fill="url(#rl-screen)"/>
+    <rect x="90" y="260" width="220" height="132" rx="6" fill="url(#rl-glass)" opacity="0.16"/>
+    <!-- Reflet de fenêtre sur l'écran éteint -->
+    <rect x="90" y="260" width="60" height="132" rx="3" fill="#ffffff" opacity="0.04"/>
+    <!-- Voyant veille -->
+    <circle cx="194" cy="322" r="5" fill="#94a3b8" opacity="0.70"/>
+    <rect x="190" y="404" width="20" height="28" fill="#15181e"/>
+    <rect x="174" y="430" width="52" height="6" rx="3" fill="#0e1014"/>
+  </g>
+
+  <!-- Plante haute (gauche) -->
+  <g>
+    <ellipse cx="44" cy="510" rx="36" ry="9" fill="#1a1e26" opacity="0.15" filter="url(#rl-soft)"/>
+    <path d="M44 460 q-38 -56 -10 -110 q18 44 10 110 z" fill="#6b8a72"/>
+    <path d="M44 460 q38 -56 10 -110 q-18 44 -10 110 z" fill="#7fa086"/>
+    <path d="M44 460 q-22 -50 -46 -66 q26 8 46 66 z" fill="#5a7860"/>
+    <path d="M44 460 q22 -50 46 -66 q-26 8 -46 66 z" fill="#8ab292"/>
+    <path d="M44 462 q-1 -48 0 -88" stroke="#52705a" stroke-width="5" fill="none"/>
+    <path d="M24 500 h40 l-5 -36 h-30 z" fill="#b0bac4"/>
+    <path d="M24 500 h40 l-2 -11 h-38 z" fill="#9aa4ae"/>
+  </g>
+
+  <!-- Plante petite (droite) -->
+  <g>
+    <ellipse cx="358" cy="514" rx="28" ry="7" fill="#1a1e26" opacity="0.12" filter="url(#rl-soft)"/>
+    <path d="M358 480 q-26 -40 -7 -80 q13 30 7 80 z" fill="#6b8a72"/>
+    <path d="M358 480 q26 -40 7 -80 q-13 30 -7 80 z" fill="#7fa086"/>
+    <path d="M358 482 q-1 -34 0 -62" stroke="#52705a" stroke-width="4" fill="none"/>
+    <path d="M342 506 h32 l-3 -26 h-26 z" fill="#b0bac4"/>
+    <path d="M342 506 h32 l-2 -10 h-30 z" fill="#9aa4ae"/>
+  </g>
+
+  <!-- Tableau avec post-its -->
+  <rect x="254" y="240" width="132" height="96" rx="6" fill="#f4f5f7"/>
+  <rect x="254" y="240" width="132" height="96" rx="6" fill="none" stroke="#ced4dc" stroke-width="3"/>
+  <!-- Post-its -->
+  <rect x="264" y="250" width="32" height="30" rx="3" fill="#fef9c3" opacity="0.9"/>
+  <rect x="302" y="250" width="32" height="30" rx="3" fill="#dbeafe" opacity="0.85"/>
+  <rect x="340" y="250" width="32" height="30" rx="3" fill="#fce7f3" opacity="0.80"/>
+  <rect x="264" y="288" width="32" height="30" rx="3" fill="#dcfce7" opacity="0.80"/>
+  <rect x="302" y="288" width="32" height="30" rx="3" fill="#fef9c3" opacity="0.85"/>
+  <rect x="340" y="288" width="32" height="30" rx="3" fill="#dbeafe" opacity="0.75"/>
+
+  <!-- Tableau blanc noir / écriture -->
+  <rect x="14" y="240" width="130" height="96" rx="6" fill="#1c2028"/>
+  <rect x="14" y="240" width="130" height="96" rx="6" fill="none" stroke="#32383f" stroke-width="3"/>
+  <g stroke="#e2e8f0" stroke-width="2" opacity="0.5">
+    <line x1="30" y1="268" x2="128" y2="268"/>
+    <line x1="30" y1="282" x2="108" y2="282"/>
+    <line x1="30" y1="296" x2="118" y2="296"/>
+    <line x1="30" y1="310" x2="94" y2="310"/>
+  </g>
+  <circle cx="28" cy="260" r="4" fill="#60a5fa" opacity="0.7"/>
+
+  <!-- Table de réunion ovale -->
+  <ellipse cx="200" cy="628" rx="286" ry="32" fill="#1a1e26" opacity="0.17" filter="url(#rl-softer)"/>
+  <polygon points="40,618 360,618 340,526 60,526" fill="url(#rl-edge)"/>
+  <polygon points="60,526 340,526 326,510 74,510" fill="url(#rl-table)"/>
+  <polygon points="80,518 320,518 312,512 88,512" fill="#ffffff" opacity="0.30"/>
+
+  <!-- Chaises lointaines vides -->
+  <g fill="#8892a0">
+    <rect x="64" y="458" width="58" height="58" rx="13"/>
+    <rect x="162" y="458" width="58" height="58" rx="13"/>
+    <rect x="260" y="458" width="58" height="58" rx="13"/>
+  </g>
+  <g fill="#ffffff" opacity="0.11">
+    <rect x="64" y="458" width="58" height="14" rx="7"/>
+    <rect x="162" y="458" width="58" height="14" rx="7"/>
+    <rect x="260" y="458" width="58" height="14" rx="7"/>
+  </g>
+
+  <!-- Objets table -->
+  <g fill="#dce2ea" opacity="0.65">
+    <rect x="120" y="510" width="42" height="28" rx="4"/>
+    <rect x="232" y="510" width="42" height="28" rx="4"/>
+  </g>
+  <!-- Verres d'eau -->
+  <rect x="188" y="510" width="14" height="24" rx="6" fill="#d0e8f8" opacity="0.55"/>
+  <rect x="192" y="508" width="6" height="4" rx="2" fill="#c0d8ec" opacity="0.4"/>
+
+  <!-- Chaises proches -->
+  <g fill="#606874">
+    <rect x="50" y="611" width="88" height="88" rx="17"/>
+    <rect x="248" y="611" width="88" height="88" rx="17"/>
+  </g>
+  <g fill="#ffffff" opacity="0.10">
+    <rect x="50" y="611" width="88" height="20" rx="10"/>
+    <rect x="248" y="611" width="88" height="20" rx="10"/>
+  </g>
+
+  <rect x="0" y="0" width="400" height="700" fill="url(#rl-overlay)"/>
+  <rect x="0" y="0" width="400" height="700" fill="url(#rl-vignette)"/>
+</svg>

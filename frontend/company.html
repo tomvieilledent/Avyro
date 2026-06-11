@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
@@ -7,26 +7,75 @@
     <link rel="icon" href="assets/mark-training.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="dist/styles.css" />
     <style>
-      html, body { height: 100%; margin: 0; }
-      body { background: #f8fafc; }
-      .app-header {
-        position: fixed; top: 0; left: 0; width: 100%; height: 60px; z-index: 30;
-        background: #1e3a8a; display: flex; align-items: center; justify-content: space-between;
-        padding: 0 1.5rem; box-shadow: 0 2px 12px rgba(15,23,62,0.22);
+      html,
+      body {
+        height: 100%;
+        margin: 0;
       }
-      .logo-text { color: #fff; font-size: 1.125rem; font-weight: 700; letter-spacing: -0.02em; text-decoration: none; display: flex; align-items: center; gap: 8px; }
-      .hbtn { display: inline-flex; align-items: center; border: 1px solid rgba(255,255,255,0.4); color: #fff; background: transparent; border-radius: 7px; padding: 5px 13px; font-size: 0.8125rem; font-weight: 500; cursor: pointer; transition: background 0.15s; text-decoration: none; }
-      .hbtn:hover { background: rgba(255,255,255,0.12); }
-      .app-main { padding-top: 80px; max-width: 900px; margin: 0 auto; padding-bottom: 3rem; padding-left: 1.5rem; padding-right: 1.5rem; }
+      body {
+        background: #f8fafc;
+      }
+      .app-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 60px;
+        z-index: 30;
+        background: #1e3a8a;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 1.5rem;
+        box-shadow: 0 2px 12px rgba(15, 23, 62, 0.22);
+      }
+      .logo-text {
+        color: #fff;
+        font-size: 1.125rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .hbtn {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        color: #fff;
+        background: transparent;
+        border-radius: 7px;
+        padding: 5px 13px;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.15s;
+        text-decoration: none;
+      }
+      .hbtn:hover {
+        background: rgba(255, 255, 255, 0.12);
+      }
+      .app-main {
+        padding-top: 80px;
+        max-width: 900px;
+        margin: 0 auto;
+        padding-bottom: 3rem;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+      }
     </style>
   </head>
   <body>
     <header class="app-header">
       <a href="dashboard.html" class="logo-text">
-        <img src="assets/mark-training.svg" alt="" style="height:28px;width:28px;" />
+        <img src="assets/mark-training.svg" alt="" style="height: 28px; width: 28px" />
         Avyro
       </a>
       <a href="javascript:history.back()" class="hbtn">← Retour</a>
@@ -35,15 +84,29 @@
     <main class="app-main">
       <div id="loading" class="text-sm text-gray-500">Chargement…</div>
 
-      <div id="content" style="display:none;">
+      <div id="content" style="display: none">
         <div class="card mb-6">
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              flex-wrap: wrap;
+              gap: 1rem;
+            "
+          >
             <div>
               <h1 id="co-name" class="text-2xl font-bold text-gray-900"></h1>
               <p id="co-kind" class="mt-1 text-sm text-gray-500"></p>
             </div>
             <div>
-              <a id="co-email" href="#" class="hbtn" style="border-color:#1d4ed8;color:#1d4ed8;background:#eff6ff;">Contacter</a>
+              <a
+                id="co-email"
+                href="#"
+                class="hbtn"
+                style="border-color: #1d4ed8; color: #1d4ed8; background: #eff6ff"
+                >Contacter</a
+              >
             </div>
           </div>
         </div>
@@ -60,19 +123,20 @@
 
     <script src="src/api.js"></script>
     <script>
-      const companyId = new URLSearchParams(location.search).get('id');
-      if (!companyId) location.href = 'dashboard.html';
+      const companyId = new URLSearchParams(location.search).get("id");
+      if (!companyId) location.href = "dashboard.html";
 
-      const fmtDate = s => new Date(s).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
+      const fmtDate = (s) =>
+        new Date(s).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" });
 
       function renderItem(t, listId) {
         const list = document.getElementById(listId);
-        const el = document.createElement('div');
-        el.className = 'card flex items-center justify-between gap-3';
+        const el = document.createElement("div");
+        el.className = "card flex items-center justify-between gap-3";
         el.innerHTML = `
           <div class="min-w-0 flex-1">
             <h3 class="font-semibold">${t.title}</h3>
-            <p class="text-sm text-gray-500 mt-0.5">${fmtDate(t.starts_at)} · ${t.is_remote ? 'À distance' : t.location || '—'}</p>
+            <p class="text-sm text-gray-500 mt-0.5">${fmtDate(t.starts_at)} · ${t.is_remote ? "À distance" : t.location || "—"}</p>
             <p class="text-sm text-gray-600 mt-1">${t.available_seats} place(s) · ${t.price_per_seat} €/place</p>
           </div>
           <a href="dashboard.html" class="btn-primary" style="flex-shrink:0;font-size:0.8125rem;padding:6px 14px;">Réserver</a>`;
@@ -82,27 +146,27 @@
       (async () => {
         try {
           const data = await Avyro.api(`/companies/${companyId}/offerings`);
-          document.getElementById('loading').style.display = 'none';
-          document.getElementById('content').style.display = '';
+          document.getElementById("loading").style.display = "none";
+          document.getElementById("content").style.display = "";
 
-          document.getElementById('co-name').textContent = data.company.name;
-          document.getElementById('co-kind').textContent = data.company.kind === 'pro' ? 'Entreprise' : 'Particulier';
-          const emailLink = document.getElementById('co-email');
+          document.getElementById("co-name").textContent = data.company.name;
+          document.getElementById("co-kind").textContent =
+            data.company.kind === "pro" ? "Entreprise" : "Particulier";
+          const emailLink = document.getElementById("co-email");
           if (data.company.contact_email) {
-            emailLink.href = 'mailto:' + data.company.contact_email;
-            emailLink.textContent = 'Contacter';
+            emailLink.href = "mailto:" + data.company.contact_email;
+            emailLink.textContent = "Contacter";
           } else {
-            emailLink.style.display = 'none';
+            emailLink.style.display = "none";
           }
 
-          if (data.trainings.length) data.trainings.forEach(t => renderItem(t, 'trainings-list'));
-          else document.getElementById('no-trainings').classList.remove('hidden');
+          if (data.trainings.length) data.trainings.forEach((t) => renderItem(t, "trainings-list"));
+          else document.getElementById("no-trainings").classList.remove("hidden");
 
-          if (data.rooms.length) data.rooms.forEach(r => renderItem(r, 'rooms-list'));
-          else document.getElementById('no-rooms').classList.remove('hidden');
-
+          if (data.rooms.length) data.rooms.forEach((r) => renderItem(r, "rooms-list"));
+          else document.getElementById("no-rooms").classList.remove("hidden");
         } catch (e) {
-          document.getElementById('loading').textContent = 'Entreprise introuvable.';
+          document.getElementById("loading").textContent = "Entreprise introuvable.";
         }
       })();
     </script>

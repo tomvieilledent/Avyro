@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 700" width="400" height="700" role="img" aria-label="Formation — vue droite">
+  <defs>
+    <radialGradient id="tr-light" cx="0.5" cy="0.12" r="0.88">
+      <stop offset="0" stop-color="#eaf3ff"/>
+      <stop offset="0.55" stop-color="#d4e6f8"/>
+      <stop offset="1" stop-color="#bccede"/>
+    </radialGradient>
+    <linearGradient id="tr-floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c8d2de"/>
+      <stop offset="1" stop-color="#aab6c6"/>
+    </linearGradient>
+    <linearGradient id="tr-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8ab8ee"/>
+      <stop offset="0.75" stop-color="#cce6f8"/>
+      <stop offset="1" stop-color="#e8f3fd"/>
+    </linearGradient>
+    <linearGradient id="tr-glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.48"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.22"/>
+    </linearGradient>
+    <radialGradient id="tr-screen" cx="0.5" cy="0.38" r="0.78">
+      <stop offset="0" stop-color="#2d4e82"/>
+      <stop offset="1" stop-color="#162440"/>
+    </radialGradient>
+    <linearGradient id="tr-table" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8f0f8"/>
+      <stop offset="1" stop-color="#c6d0de"/>
+    </linearGradient>
+    <linearGradient id="tr-edge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8e9aaa"/>
+      <stop offset="1" stop-color="#72808e"/>
+    </linearGradient>
+    <linearGradient id="tr-overlay" x1="0.2" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1e3a8a" stop-opacity="0.58"/>
+      <stop offset="1" stop-color="#1d4ed8" stop-opacity="0.38"/>
+    </linearGradient>
+    <radialGradient id="tr-vignette" cx="0.5" cy="0.45" r="0.75">
+      <stop offset="0.5" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#0b1220" stop-opacity="0.46"/>
+    </radialGradient>
+    <filter id="tr-soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+    <filter id="tr-softer" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="16"/>
+    </filter>
+    <clipPath id="tr-win"><rect x="20" y="52" width="360" height="158" rx="3"/></clipPath>
+  </defs>
+
+  <rect x="0" y="0" width="400" height="520" fill="url(#tr-light)"/>
+  <rect x="0" y="498" width="400" height="12" fill="#b4bece"/>
+  <rect x="0" y="510" width="400" height="190" fill="url(#tr-floor)"/>
+  <rect x="0" y="510" width="400" height="76" fill="#ffffff" opacity="0.08"/>
+
+  <g clip-path="url(#tr-win)">
+    <rect x="20" y="52" width="360" height="158" fill="url(#tr-sky)"/>
+    <g fill="#98b8d4" opacity="0.62">
+      <rect x="45" y="145" width="48" height="65"/>
+      <rect x="115" y="115" width="38" height="95"/>
+      <rect x="180" y="148" width="60" height="62"/>
+      <rect x="276" y="122" width="52" height="88"/>
+      <rect x="352" y="138" width="38" height="72"/>
+    </g>
+    <rect x="20" y="52" width="360" height="158" fill="url(#tr-glass)"/>
+  </g>
+  <rect x="20" y="52" width="360" height="158" rx="3" fill="none" stroke="#aabccc" stroke-width="6"/>
+  <g stroke="#b8c6d4" stroke-width="4">
+    <line x1="20" y1="130" x2="380" y2="130"/>
+    <line x1="110" y1="52" x2="110" y2="210"/>
+    <line x1="200" y1="52" x2="200" y2="210"/>
+    <line x1="290" y1="52" x2="290" y2="210"/>
+  </g>
+
+  <!-- Grand écran centré allumé -->
+  <g>
+    <ellipse cx="200" cy="294" rx="160" ry="14" fill="#1b2233" opacity="0.15" filter="url(#tr-soft)"/>
+    <rect x="38" y="242" width="324" height="174" rx="10" fill="#141920"/>
+    <rect x="50" y="254" width="300" height="150" rx="6" fill="url(#tr-screen)"/>
+    <rect x="50" y="254" width="300" height="150" rx="6" fill="#6aaeff" opacity="0.06"/>
+    <!-- Diapo : titre + texte -->
+    <rect x="68" y="270" width="160" height="12" rx="4" fill="#c8dcf4" opacity="0.8"/>
+    <rect x="68" y="290" width="120" height="8" rx="3" fill="#8aaedc" opacity="0.55"/>
+    <rect x="68" y="304" width="100" height="8" rx="3" fill="#8aaedc" opacity="0.45"/>
+    <!-- Graphique camembert droit -->
+    <circle cx="296" cy="316" r="50" fill="none" stroke="#9cc7ff" stroke-width="22" stroke-dasharray="78 236" stroke-dashoffset="0" opacity="0.8"/>
+    <circle cx="296" cy="316" r="50" fill="none" stroke="#3b6eb4" stroke-width="22" stroke-dasharray="60 254" stroke-dashoffset="-78" opacity="0.6"/>
+    <circle cx="296" cy="316" r="50" fill="none" stroke="#6aaeff" stroke-width="22" stroke-dasharray="98 216" stroke-dashoffset="-138" opacity="0.7"/>
+    <rect x="190" y="416" width="20" height="28" fill="#141920"/>
+    <rect x="174" y="442" width="52" height="6" rx="3" fill="#0e1318"/>
+  </g>
+
+  <!-- 4 participants serrés en arc autour de la table -->
+  <!-- Table ronde petite -->
+  <ellipse cx="200" cy="560" rx="110" ry="18" fill="#1b2233" opacity="0.14" filter="url(#tr-soft)"/>
+  <ellipse cx="200" cy="544" rx="110" ry="18" fill="url(#tr-table)"/>
+  <ellipse cx="200" cy="538" rx="104" ry="14" fill="#c6d0de"/>
+  <ellipse cx="200" cy="534" rx="98" ry="11" fill="#ffffff" opacity="0.28"/>
+
+  <!-- Participant haut-gauche -->
+  <g>
+    <rect x="70" y="462" width="64" height="60" rx="20" fill="#2c3a4e"/>
+    <circle cx="102" cy="448" r="24" fill="#d9b692"/>
+    <path d="M80 444 a22 22 0 0 1 44 0 q-22 -14 -44 0 z" fill="#4a3a2c"/>
+  </g>
+  <!-- Participant haut-droite -->
+  <g>
+    <rect x="262" y="462" width="64" height="60" rx="20" fill="#3c4e66"/>
+    <circle cx="294" cy="448" r="24" fill="#eccbab"/>
+    <path d="M272 444 a22 22 0 0 1 44 0 q-22 -14 -44 0 z" fill="#2f2620"/>
+  </g>
+  <!-- Participant bas-gauche -->
+  <g>
+    <rect x="90" y="538" width="64" height="60" rx="20" fill="#45536a"/>
+    <circle cx="122" cy="524" r="24" fill="#e4b896"/>
+    <path d="M100 520 a22 22 0 0 1 44 0 q-22 -15 -44 0 z" fill="#5a3c2a"/>
+  </g>
+  <!-- Participant bas-droite -->
+  <g>
+    <rect x="242" y="538" width="64" height="60" rx="20" fill="#2e3e52"/>
+    <circle cx="274" cy="524" r="24" fill="#e8ccaa"/>
+    <path d="M252 520 a22 22 0 0 1 44 0 q-22 -15 -44 0 z" fill="#3a2c1e"/>
+  </g>
+
+  <!-- Grande table en perspective basse -->
+  <ellipse cx="200" cy="645" rx="280" ry="30" fill="#1b2233" opacity="0.18" filter="url(#tr-softer)"/>
+  <polygon points="44,634 356,634 338,556 62,556" fill="url(#tr-edge)"/>
+  <polygon points="62,556 338,556 324,542 76,542" fill="url(#tr-table)"/>
+  <polygon points="82,550 318,550 310,544 90,544" fill="#ffffff" opacity="0.28"/>
+
+  <!-- Cahiers sur table -->
+  <g fill="#d0daea" opacity="0.6">
+    <rect x="122" y="543" width="44" height="28" rx="4"/>
+    <rect x="228" y="543" width="44" height="28" rx="4"/>
+  </g>
+  <g fill="#ffffff" opacity="0.35">
+    <rect x="126" y="547" width="36" height="4" rx="2"/>
+    <rect x="126" y="554" width="26" height="3" rx="1"/>
+    <rect x="232" y="547" width="36" height="4" rx="2"/>
+    <rect x="232" y="554" width="26" height="3" rx="1"/>
+  </g>
+
+  <!-- Chaises proches -->
+  <g fill="#4a5668">
+    <rect x="52" y="628" width="86" height="72" rx="16"/>
+    <rect x="252" y="628" width="86" height="72" rx="16"/>
+  </g>
+  <g fill="#ffffff" opacity="0.09">
+    <rect x="52" y="628" width="86" height="19" rx="9"/>
+    <rect x="252" y="628" width="86" height="19" rx="9"/>
+  </g>
+
+  <rect x="0" y="0" width="400" height="700" fill="url(#tr-overlay)"/>
+  <rect x="0" y="0" width="400" height="700" fill="url(#tr-vignette)"/>
+</svg>

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
@@ -7,15 +7,23 @@
     <link rel="icon" href="assets/mark-training.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="dist/styles.css" />
-    <style>html, body { height: 100%; overflow: hidden; }</style>
+    <style>
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+    </style>
   </head>
   <body>
     <div class="relative h-screen overflow-hidden flex">
-
       <!-- Fond diagonal -->
-      <svg id="hero-svg" style="position:fixed;inset:0;width:100vw;height:100vh;z-index:0;">
+      <svg id="hero-svg" style="position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 0">
         <defs>
           <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="#1D4ED8" />
@@ -24,64 +32,101 @@
         </defs>
         <polygon id="diag-left" fill="url(#blueGrad)" />
         <polygon id="diag-right" fill="#f8fafc" />
-        <line id="diag-line" stroke="white" stroke-width="3" stroke-opacity="0.45" vector-effect="non-scaling-stroke" />
+        <line
+          id="diag-line"
+          stroke="white"
+          stroke-width="3"
+          stroke-opacity="0.45"
+          vector-effect="non-scaling-stroke"
+        />
       </svg>
       <!-- Script de diagonale SVG (même logique que index.html, angle 63°) -->
       <script>
         (function () {
           const ANGLE_DEG = 63;
-          const svg = document.getElementById('hero-svg');
+          const svg = document.getElementById("hero-svg");
           function update() {
             const W = window.innerWidth;
             const H = window.innerHeight;
-            svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+            svg.setAttribute("viewBox", "0 0 " + W + " " + H);
             const run = H / Math.tan((ANGLE_DEG * Math.PI) / 180);
             const xTop = W / 2 + run / 2;
             const xBot = W / 2 - run / 2;
-            document.getElementById('diag-left').setAttribute('points', '0,0 ' + xTop + ',0 ' + xBot + ',' + H + ' 0,' + H);
-            document.getElementById('diag-right').setAttribute('points', xTop + ',0 ' + W + ',0 ' + W + ',' + H + ' ' + xBot + ',' + H);
-            const line = document.getElementById('diag-line');
-            line.setAttribute('x1', xTop); line.setAttribute('y1', 0);
-            line.setAttribute('x2', xBot); line.setAttribute('y2', H);
+            document
+              .getElementById("diag-left")
+              .setAttribute("points", "0,0 " + xTop + ",0 " + xBot + "," + H + " 0," + H);
+            document
+              .getElementById("diag-right")
+              .setAttribute(
+                "points",
+                xTop + ",0 " + W + ",0 " + W + "," + H + " " + xBot + "," + H,
+              );
+            const line = document.getElementById("diag-line");
+            line.setAttribute("x1", xTop);
+            line.setAttribute("y1", 0);
+            line.setAttribute("x2", xBot);
+            line.setAttribute("y2", H);
           }
-          window.addEventListener('resize', update);
+          window.addEventListener("resize", update);
           update();
         })();
       </script>
 
       <!-- Gauche : branding -->
-      <div class="relative z-10 flex flex-1 flex-col items-center justify-center py-12" style="padding-left: 8vw; padding-right: 4vw;">
+      <div
+        class="relative z-10 flex flex-1 flex-col items-center justify-center py-12"
+        style="padding-left: 8vw; padding-right: 4vw"
+      >
         <a href="index.html">
-          <div class="bg-white rounded-2xl shadow-xl p-4" style="width: 220px;">
+          <div class="bg-white rounded-2xl shadow-xl p-4" style="width: 220px">
             <img src="assets/logo-avyro.svg" alt="Avyro" class="w-full" />
           </div>
         </a>
-        <p class="mt-6 max-w-xs text-sm text-center" style="color:rgba(255,255,255,0.75)">
-          La plateforme de mutualisation<br>entre entreprises
+        <p class="mt-6 max-w-xs text-sm text-center" style="color: rgba(255, 255, 255, 0.75)">
+          La plateforme de mutualisation<br />entre entreprises
         </p>
       </div>
 
       <!-- Droite : formulaire -->
-      <div class="relative z-10 flex flex-1 items-center justify-end" style="height:100vh; padding-right:5vw;">
+      <div
+        class="relative z-10 flex flex-1 items-center justify-end"
+        style="height: 100vh; padding-right: 5vw"
+      >
         <div class="w-full max-w-sm">
           <h1 class="text-2xl font-bold text-gray-900 text-right">Connexion</h1>
           <p class="mt-1 text-sm text-gray-500 text-right">Bienvenue sur Avyro</p>
           <form id="form" class="mt-6 space-y-4">
             <input class="input" name="email" type="email" placeholder="Email" required />
-            <input class="input" name="password" type="password" placeholder="Mot de passe" required />
+            <input
+              class="input"
+              name="password"
+              type="password"
+              placeholder="Mot de passe"
+              required
+            />
             <p id="error" class="hidden text-sm text-red-600"></p>
             <button class="btn-primary w-full" type="submit">Se connecter</button>
           </form>
           <p class="mt-4 text-center text-sm text-gray-600">
             Pas de compte ?
-            <a href="register.html" class="font-medium" style="color:#1D4ED8">Créer un compte</a>
+            <a href="register.html" class="font-medium" style="color: #1d4ed8">Créer un compte</a>
           </p>
         </div>
       </div>
-
     </div>
 
-    <span style="position:fixed;bottom:1rem;right:2rem;font-size:0.7rem;color:rgba(30,58,138,0.4);letter-spacing:0.01em;z-index:10;">© 2026 AVYRO. Tous droits réservés.</span>
+    <span
+      style="
+        position: fixed;
+        bottom: 1rem;
+        right: 2rem;
+        font-size: 0.7rem;
+        color: rgba(30, 58, 138, 0.4);
+        letter-spacing: 0.01em;
+        z-index: 10;
+      "
+      >© 2026 AVYRO. Tous droits réservés.</span
+    >
     <script src="src/api.js"></script>
     <!--
       Soumission du formulaire de connexion :
@@ -100,9 +145,9 @@
             body: { email: f.get("email"), password: f.get("password") },
           });
           Avyro.setSession(data);
-          const next = new URLSearchParams(location.search).get('next');
-          if (next === 'room' || next === 'training') {
-            localStorage.setItem('avyro_mode', next);
+          const next = new URLSearchParams(location.search).get("next");
+          if (next === "room" || next === "training") {
+            localStorage.setItem("avyro_mode", next);
           }
           location.href = "dashboard.html";
         } catch (ex) {

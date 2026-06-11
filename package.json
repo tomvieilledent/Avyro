@@ -1,0 +1,16 @@
+{
+  "name": "avyro",
+  "version": "1.0.0",
+  "description": "Plateforme de mutualisation entre entreprises, bimodale :",
+  "main": "index.js",
+  "scripts": {
+    "format": "prettier --write \"frontend/**/*.html\"",
+    "format:check": "prettier --check \"frontend/**/*.html\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "prettier": "^3.8.4"
+  }
+}
