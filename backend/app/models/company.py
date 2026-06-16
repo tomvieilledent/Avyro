@@ -31,7 +31,9 @@ class Company(TimestampMixin, db.Model):
         self._tags = json.dumps(value) if value else None
 
     # Un seul admin par Company (le fondateur) ; plusieurs membres possibles
-    users = db.relationship("User", back_populates="company")
+    users = db.relationship(
+        "User", back_populates="company", cascade="all, delete-orphan"
+    )
     trainings = db.relationship(
         "Training", back_populates="provider", cascade="all, delete-orphan"
     )

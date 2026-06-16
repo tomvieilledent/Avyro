@@ -34,9 +34,8 @@ def client(app):
 def register_and_login(client, email: str, password: str = "password123",
                        company_name: str | None = None) -> dict:
     """
-    Inscrit un utilisateur, puis le connecte.
-
-    Retourne le dict complet de la réponse (access_token, refresh_token, user).
+    Inscrit un utilisateur et retourne le dict complet de la réponse
+    (access_token, refresh_token, user).
     """
     payload = {
         "email": email,
@@ -53,37 +52,57 @@ def register_and_login(client, email: str, password: str = "password123",
     return res.get_json()
 
 
+_siret_counter = 0
+
+
 def auth_headers_for(client, email: str, password: str = "password123",
-                     company_name: str | None = None) -> dict:
-    """Retourne les headers Authorization prêts à l'emploi."""
+                     company_name: str | None = None,
+                     with_siret: bool = False) -> dict:
+    """
+    Retourne les headers Authorization prêts à l'emploi.
+    Si with_siret=True, patche la Company avec un SIRET unique (requis pour publier).
+    """
+    global _siret_counter
     data = register_and_login(client, email, password, company_name)
-    return {"Authorization": f"Bearer {data['access_token']}"}
+    headers = {"Authorization": f"Bearer {data['access_token']}"}
+    if with_siret:
+        _siret_counter += 1
+        siret = str(_siret_counter).zfill(14)
+        client.patch(
+            "/api/companies/me",
+            headers=headers,
+            json={"siret": siret},
+        )
+    return headers
 
 
 # ── Fixtures nommées pour les tests ──────────────────────────────────────────
 
 @pytest.fixture
 def auth_headers(client):
-    """Headers JWT pour l'utilisateur 'alice@a.com' (Company 'Acme')."""
-    return auth_headers_for(client, "alice@a.com", company_name="Acme")
+    """Headers JWT pour alice@a.com avec SIRET (peut publier des offres)."""
+    return auth_headers_for(client, "alice@a.com", company_name="Acme",
+                            with_siret=True)
 
 
 @pytest.fixture
 def provider_headers(client):
-    """Headers JWT pour le provider (prov@example.com, Company 'Prov Corp')."""
-    return auth_headers_for(client, "prov@example.com", company_name="Prov Corp")
+    """Headers JWT pour le provider avec SIRET."""
+    return auth_headers_for(client, "prov@example.com",
+                            company_name="Prov Corp", with_siret=True)
 
 
 @pytest.fixture
 def booker_headers(client):
-    """Headers JWT pour le booker (booker@example.com, Company 'Booker Inc')."""
-    return auth_headers_for(client, "booker@example.com", company_name="Booker Inc")
+    """Headers JWT pour le booker (pas besoin de SIRET pour réserver)."""
+    return auth_headers_for(client, "booker@example.com",
+                            company_name="Booker Inc")
 
 
 # ── Helpers de création de ressources ────────────────────────────────────────
 
 def create_training(client, headers: dict, **overrides) -> dict:
-    """Crée une formation via l'API et retourne son dict."""
+    """Crée une formation via /api/trainings et retourne son dict."""
     payload = {
         "title": "Formation test",
         "contact_phone": "0600000000",
@@ -98,12 +117,30 @@ def create_training(client, headers: dict, **overrides) -> dict:
     return res.get_json()
 
 
-def create_booking(client, headers: dict, training_id: int, seats: int = 2) -> dict:
+def create_room(client, headers: dict, **overrides) -> dict:
+    """Crée une salle via /api/rooms et retourne son dict."""
+    payload = {
+        "title": "Salle test",
+        "contact_phone": "0600000000",
+        "starts_at": "2026-09-01T09:00:00",
+        "ends_at": "2026-09-01T17:00:00",
+        "shared_seats": 4,
+        "price_per_seat": 50.0,
+        **overrides,
+    }
+    res = client.post("/api/rooms", headers=headers, json=payload)
+    assert res.status_code == 201, f"Create room failed: {res.get_json()}"
+    return res.get_json()
+
+
+def create_booking(client, headers: dict, training_id: int = None,
+                   room_id: int = None, seats: int = 2) -> dict:
     """Crée une demande de réservation et retourne son dict."""
-    res = client.post(
-        "/api/bookings",
-        headers=headers,
-        json={"training_id": training_id, "seats": seats},
-    )
+    body = {"seats": seats}
+    if training_id is not None:
+        body["training_id"] = training_id
+    if room_id is not None:
+        body["room_id"] = room_id
+    res = client.post("/api/bookings", headers=headers, json=body)
     assert res.status_code == 201, f"Create booking failed: {res.get_json()}"
     return res.get_json()
