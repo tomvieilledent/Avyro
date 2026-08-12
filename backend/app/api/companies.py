@@ -91,7 +91,7 @@ class InviteView(MethodView):
         )
         from flask import request
         base = request.host_url.rstrip("/")
-        invite_url = f"{base}/invite.html?token={token}"
+        invite_url = f"{base}/invite?token={token}"
 
         send_email(
             to=invite_email,

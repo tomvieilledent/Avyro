@@ -82,8 +82,12 @@ def _register_blueprints(app: Flask) -> None:
 
 def _register_frontend(app: Flask, frontend_dir: str) -> None:
     """
-    Sert les fichiers statiques du frontend depuis Python (dev uniquement).
-    En production, nginx sert directement le dossier frontend/.
+    Sert le build SPA (Vite/React) depuis Python (dev sans nginx).
+    En production, nginx peut aussi servir directement le dossier frontend/.
+
+    Toute route qui ne correspond ni à /api/*, ni à un fichier statique
+    existant (JS/CSS/images du build) retombe sur index.html : c'est
+    react-router-dom qui résout la page côté client (fallback SPA).
     """
     from flask import send_from_directory, abort as flask_abort
 
@@ -97,7 +101,7 @@ def _register_frontend(app: Flask, frontend_dir: str) -> None:
             flask_abort(404)
         if os.path.isfile(os.path.join(frontend_dir, path)):
             return send_from_directory(frontend_dir, path)
-        flask_abort(404)
+        return send_from_directory(frontend_dir, "index.html")
 
 
 def _register_cli(app: Flask) -> None:
