@@ -11,7 +11,8 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
 db = SQLAlchemy()
-migrate = Migrate()
+# render_as_batch : ALTER TABLE compatibles SQLite (no-op sur PostgreSQL)
+migrate = Migrate(render_as_batch=True)
 jwt = JWTManager()
 cors = CORS()
 # Nommé 'smorest' pour éviter la collision avec le sous-package app/api/
