@@ -1,0 +1,58 @@
+# Choix scheduler : APScheduler tourne dans chaque process qui charge l'app avec
+# RUN_SCHEDULER=1. Avec plusieurs workers gunicorn, les jobs (rappels email)
+# seraient dupliqués. On garde donc UN SEUL worker (WEB_CONCURRENCY=1, threads
+# pour la concurrence) avec RUN_SCHEDULER=1. Pour monter en charge : WEB_CONCURRENCY>1
+# ET RUN_SCHEDULER=0, avec le scheduler dans une seconde instance dédiée.
+services:
+  db:
+    image: postgres:16.4-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-avyro}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis}
+      POSTGRES_DB: ${POSTGRES_DB:-avyro}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [backend]
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      FLASK_ENV: ${FLASK_ENV:-production}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-avyro}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-avyro}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY requis}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY requis}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8080}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+      SERVE_FRONTEND: /app/frontend/dist
+      RUN_SCHEDULER: "1"
+      WEB_CONCURRENCY: "1"
+      HTTP_PORT: "8080"
+      MAIL_SERVER: ${MAIL_SERVER:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USE_TLS: ${MAIL_USE_TLS:-true}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@avyro.app}
+      RATELIMIT_STORAGE_URI: ${RATELIMIT_STORAGE_URI:-memory://}
+      TRUSTED_PROXY_COUNT: ${TRUSTED_PROXY_COUNT:-0}
+      API_DOCS_ENABLED: ${API_DOCS_ENABLED:-0}
+      SCHEDULER_INTERVAL_MINUTES: ${SCHEDULER_INTERVAL_MINUTES:-60}
+    ports:
+      - "${HTTP_PORT:-8080}:8080"
+    networks: [backend]
+
+networks:
+  backend:
+
+volumes:
+  pgdata:
