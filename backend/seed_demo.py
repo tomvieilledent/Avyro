@@ -1,24 +1,20 @@
 """
 Seed de démonstration Avyro.
-Remplace les données de formation/salle par des exemples cohérents
-et renomme les companies avec des noms réalistes.
-"""
-import os, sys
-from datetime import datetime
 
-sys.path.insert(0, os.path.dirname(__file__))
-os.environ.setdefault("DATABASE_URL", "sqlite:////root/Holberton/Avyro/backend/dev.db")
-os.environ.setdefault("FLASK_ENV", "development")
-os.environ.setdefault("SECRET_KEY", "dev-change-me")
-os.environ.setdefault("JWT_SECRET_KEY", "dev-jwt-secret-please-change-me-32bytes")
+Renomme les companies existantes avec des noms réalistes et remplace les
+formations, salles et réservations par des exemples cohérents.
+
+Usage (depuis backend/, avec une base déjà migrée et au moins une company) :
+    DATABASE_URL=sqlite:///dev.db ./.venv/bin/python seed_demo.py
+
+Jamais exécutable en production.
+"""
+import os
+from datetime import datetime
 
 from app import create_app
 from app.extensions import db
-from app.models.company import Company
-from app.models.training import Training
-from app.models.booking import Booking
-
-app = create_app("development")
+from app.models import Booking, Company, Room, Training
 
 # ── Noms réalistes pour les companies ────────────────────────────────────────
 COMPANY_NAMES = [
@@ -268,87 +264,79 @@ ROOMS = [
 ]
 
 
-with app.app_context():
-    conn = db.engine.raw_connection()
-    cur  = conn.cursor()
+def seed() -> None:
+    """Remplace les données de démonstration via l'ORM (transaction unique)."""
+    companies = Company.query.order_by(Company.id).all()
+    if not companies:
+        raise SystemExit(
+            "Aucune company : créez au moins un compte (POST /api/auth/register) "
+            "avant de lancer le seed."
+        )
+    n = len(companies)
 
-    # ── 1. Renommage des companies ────────────────────────────────────────────
-    cur.execute("SELECT id FROM companies ORDER BY id")
-    ids = [row[0] for row in cur.fetchall()]
-    for i, cid in enumerate(ids):
-        if i < len(COMPANY_NAMES):
-            cur.execute("UPDATE companies SET name=? WHERE id=?", (COMPANY_NAMES[i], cid))
-    print(f"Companies renommées : {len(ids)}")
+    for company, name in zip(companies, COMPANY_NAMES):
+        company.name = name
+    print(f"Companies renommées : {min(n, len(COMPANY_NAMES))}")
 
-    # ── 2. Suppression de toutes les données existantes ───────────────────────
-    cur.execute("DELETE FROM bookings")
-    cur.execute("DELETE FROM trainings")
-    cur.execute("DELETE FROM rooms")
+    Booking.query.delete()
+    Training.query.delete()
+    Room.query.delete()
     print("Trainings, rooms et réservations existants supprimés.")
 
-    now = datetime.utcnow().isoformat()
-    n = len(ids)
-
-    # ── 3. Insertion des formations (table trainings) ─────────────────────────
-    sql_training = """
-        INSERT INTO trainings
-          (kind, title, description, location, is_remote, contact_phone,
-           starts_at, ends_at, latitude, longitude,
-           total_seats, shared_seats, price_per_seat,
-           status, reminder_sent, provider_id, created_at, updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    """
     for i, data in enumerate(TRAININGS):
-        provider_id = ids[i % n]
-        cur.execute(sql_training, (
-            "training",
-            data["title"], data["description"],
-            data.get("location", ""), int(data.get("is_remote", False)),
-            data["contact_phone"],
-            data["starts_at"].isoformat(), data["ends_at"].isoformat(),
-            data.get("latitude"), data.get("longitude"),
-            data["shared_seats"], data["shared_seats"],
-            data["price_per_seat"],
-            "open", 0, provider_id, now, now,
+        db.session.add(Training(
+            provider_id=companies[i % n].id,
+            title=data["title"],
+            description=data["description"],
+            location=data.get("location", ""),
+            is_remote=data.get("is_remote", False),
+            contact_phone=data["contact_phone"],
+            starts_at=data["starts_at"],
+            ends_at=data["ends_at"],
+            latitude=data.get("latitude"),
+            longitude=data.get("longitude"),
+            shared_seats=data["shared_seats"],
+            price_per_seat=data["price_per_seat"],
+            status="open",
         ))
     print(f"{len(TRAININGS)} formations Training insérées.")
 
-    # ── 4. Insertion des salles (table rooms) ─────────────────────────────────
-    sql_room = """
-        INSERT INTO rooms
-          (title, description, location, is_remote, contact_phone,
-           starts_at, ends_at, latitude, longitude,
-           shared_seats, price_per_seat,
-           status, reminder_sent, provider_id, created_at, updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    """
     for i, data in enumerate(ROOMS):
-        provider_id = ids[(i + 2) % n]
-        cur.execute(sql_room, (
-            data["title"], data["description"],
-            data.get("location", ""), 0,
-            data["contact_phone"],
-            data["starts_at"].isoformat(), data["ends_at"].isoformat(),
-            data.get("latitude"), data.get("longitude"),
-            data["shared_seats"],
-            data["price_per_seat"],
-            "open", 0, provider_id, now, now,
+        db.session.add(Room(
+            provider_id=companies[(i + 2) % n].id,
+            title=data["title"],
+            description=data["description"],
+            location=data.get("location", ""),
+            is_remote=False,
+            contact_phone=data["contact_phone"],
+            starts_at=data["starts_at"],
+            ends_at=data["ends_at"],
+            latitude=data.get("latitude"),
+            longitude=data.get("longitude"),
+            shared_seats=data["shared_seats"],
+            price_per_seat=data["price_per_seat"],
+            status="open",
         ))
     print(f"{len(ROOMS)} salles Room insérées.")
 
-    conn.commit()
-    conn.close()
+    db.session.commit()
 
-    print(f"\n✓ Seed démo terminé.")
-    print(f"  {len(TRAININGS)} formations Training · {len(ROOMS)} salles Room")
-    raw = db.engine.raw_connection()
-    cr  = raw.cursor()
-    cr.execute("""
-        SELECT c.name,
-               (SELECT COUNT(*) FROM trainings t WHERE t.provider_id=c.id) AS tr,
-               (SELECT COUNT(*) FROM rooms r WHERE r.provider_id=c.id) AS ro
-        FROM companies c ORDER BY c.id
-    """)
-    for row in cr.fetchall():
-        print(f"  {row[0]} → {row[1]} formation(s) · {row[2]} salle(s)")
-    raw.close()
+    print("\nSeed démo terminé.")
+    for company in Company.query.order_by(Company.id).all():
+        print(
+            f"  {company.name} -> {len(company.trainings)} formation(s) · "
+            f"{len(company.rooms)} salle(s)"
+        )
+
+
+def main() -> None:
+    env = os.getenv("FLASK_ENV", "development")
+    if env == "production":
+        raise SystemExit("seed_demo.py est interdit en production.")
+    app = create_app(env)
+    with app.app_context():
+        seed()
+
+
+if __name__ == "__main__":
+    main()
