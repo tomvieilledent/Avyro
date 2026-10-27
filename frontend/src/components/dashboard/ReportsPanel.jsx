@@ -3,12 +3,18 @@ import { api } from '../../lib/api.js'
 import { useDashboard } from '../../lib/DashboardContext.jsx'
 import { fmtDate } from '../../lib/format.js'
 
+/** Neutralise l'injection de formules tableur (=, +, -, @, tab, CR). */
+function csvCell(v) {
+  const s = String(v ?? '')
+  return /^[=+\-@\t\r]/.test(s) ? `'${s}` : s
+}
+
 function csvHref(report) {
   const rows = [['Structure', 'Places', 'Contact', 'Email']].concat(
     (report.attendees || []).map((a) => [a.company_name, a.seats, a.contact_name, a.contact_email]),
   )
   const content = rows
-    .map((row) => row.map((v) => `"${String(v || '').replace(/"/g, '""')}"`).join(','))
+    .map((row) => row.map((v) => `"${csvCell(v).replace(/"/g, '""')}"`).join(','))
     .join('\n')
   return `data:text/csv;charset=utf-8,${encodeURIComponent(content)}`
 }

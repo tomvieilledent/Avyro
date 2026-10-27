@@ -14,14 +14,26 @@ export default function BookingsPanel() {
   }, [kindQS])
 
   useEffect(() => {
-    load()
-  }, [load])
+    ;(async () => {
+      try {
+        await load()
+      } catch (ex) {
+        showToast(errText(ex), 'error')
+      }
+    })()
+  }, [load]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function unsubscribe(b) {
     if (!confirm('Se désinscrire de cette formation ?')) return
     try {
+      // Le backend passe la réservation au statut « cancelled » (la réponse peut la contenir ; on recharge)
       await api(`/bookings/${b.id}`, { method: 'DELETE' })
-      load()
+      showToast('Réservation annulée.')
+    } catch (ex) {
+      showToast(errText(ex), 'error')
+    }
+    try {
+      await load()
     } catch (ex) {
       showToast(errText(ex), 'error')
     }

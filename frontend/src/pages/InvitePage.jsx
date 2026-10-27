@@ -4,14 +4,6 @@ import AuthLayout from '../components/AuthLayout.jsx'
 import { api } from '../lib/api.js'
 import { useAuth } from '../lib/AuthContext.jsx'
 
-function decodeInvitePayload(token) {
-  try {
-    return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
-  } catch {
-    return null
-  }
-}
-
 export default function InvitePage() {
   const { login } = useAuth()
   const navigate = useNavigate()
@@ -21,16 +13,24 @@ export default function InvitePage() {
   const [inviteEmail, setInviteEmail] = useState('')
   const [form, setForm] = useState({ first_name: '', last_name: '', phone: '', password: '' })
   const [error, setError] = useState('')
+  const [invalid, setInvalid] = useState(false)
 
   useEffect(() => {
     if (!token) return
-    const payload = decodeInvitePayload(token)
-    if (!payload) return
-    if (payload.invite_email) setInviteEmail(payload.invite_email)
-    if (payload.company_id) {
-      api(`/companies/${payload.company_id}`)
-        .then((c) => setCompanyName(c.name))
-        .catch(() => {})
+    let cancelled = false
+    api(`/auth/invite-info?token=${encodeURIComponent(token)}`)
+      .then((info) => {
+        if (cancelled) return
+        setInviteEmail(info.email || '')
+        setCompanyName(info.company_name || '')
+      })
+      .catch((ex) => {
+        if (cancelled) return
+        setInvalid(true)
+        if (ex.status !== 400) console.warn('Invitation illisible', ex)
+      })
+    return () => {
+      cancelled = true
     }
   }, [token])
 
@@ -66,9 +66,9 @@ export default function InvitePage() {
       <h1 className="text-right text-2xl font-bold text-gray-900">Rejoindre l’équipe</h1>
       {inviteEmail && <p className="mt-1 text-right text-sm text-gray-500">{inviteEmail}</p>}
 
-      {!token ? (
+      {!token || invalid ? (
         <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          Ce lien d’invitation est invalide ou a expiré.
+          Lien d'invitation invalide ou expiré
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">

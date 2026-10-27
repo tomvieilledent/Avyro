@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, errText } from '../../lib/api.js'
-import { searchAddress } from '../../lib/nominatim.js'
+import { searchAddress } from '../../lib/geocode.js'
 import { useDashboard } from '../../lib/DashboardContext.jsx'
 import { useToast } from '../../lib/ToastContext.jsx'
 
@@ -79,22 +79,24 @@ export default function OfferFormModal({ editing, onClose, onSaved }) {
       try {
         const data = await searchAddress(value.trim())
         setAddrResults(data)
-      } catch {
+      } catch (ex) {
         setAddrResults([])
+        showToast(
+          ex.status === 502 ? "Service d'adresses indisponible, saisissez l'adresse manuellement." : errText(ex),
+          'error',
+        )
       }
     }, 400)
   }
 
   function pickAddress(item) {
-    const a = item.address || {}
-    const line1 = [a.house_number, a.road].filter(Boolean).join(' ')
     setForm((f) => ({
       ...f,
-      addr_line1: line1,
-      postal_code: a.postcode || '',
-      city: a.city || a.town || a.village || a.municipality || '',
+      addr_line1: item.line1 || '',
+      postal_code: item.postal_code || '',
+      city: item.city || '',
     }))
-    setGeo({ lat: parseFloat(item.lat), lng: parseFloat(item.lon) })
+    setGeo({ lat: parseFloat(item.lat), lng: parseFloat(item.lng) })
     setAddrQuery('')
     setAddrResults([])
   }
@@ -199,7 +201,7 @@ export default function OfferFormModal({ editing, onClose, onSaved }) {
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => pickAddress(item)}
                     >
-                      {item.display_name}
+                      {item.label}
                     </div>
                   ))}
                 </div>

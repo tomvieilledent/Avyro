@@ -47,7 +47,7 @@ export default function OfferCard({ item: t, canBook, owner, catalogOwner, onBoo
   }
 
   const fillPct = t.shared_seats > 0 ? Math.round((t.booked_seats / t.shared_seats) * 100) : 0
-  const fillColor = fillPct >= 90 ? '#ef4444' : fillPct >= 60 ? '#f59e0b' : '#22c55e'
+  const fillColor = fillPct >= 90 ? 'bg-red-500' : fillPct >= 60 ? 'bg-amber-500' : 'bg-green-500'
 
   return (
     <div className={`card flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between ${stateStyle ? stateStyle.card : ''}`}>
@@ -100,7 +100,7 @@ export default function OfferCard({ item: t, canBook, owner, catalogOwner, onBoo
         {!isRoom && (
           <div className="mt-2 flex items-center gap-2">
             <div className="fill-bar-track">
-              <div className="fill-bar-fill" style={{ width: `${fillPct}%`, background: fillColor }} />
+              <div className={`fill-bar-fill ${fillColor}`} style={{ width: `${fillPct}%` }} />
             </div>
             <span className="shrink-0 text-[0.65rem] text-gray-500">{fillPct}% occupé</span>
           </div>

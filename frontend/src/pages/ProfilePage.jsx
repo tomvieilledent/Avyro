@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { api, errText, getToken } from '../lib/api.js'
+import { api, clearSession, errText, getToken } from '../lib/api.js'
 import { useAuth, useRequireAuth } from '../lib/AuthContext.jsx'
 
 function Flash({ text, ok }) {
@@ -118,9 +118,7 @@ export default function ProfilePage() {
     if (!confirm('Confirmez-vous la suppression de toutes vos données personnelles ?')) return
     try {
       await api('/auth/me', { method: 'DELETE' })
-      localStorage.removeItem('avyro_token')
-      localStorage.removeItem('avyro_refresh')
-      localStorage.removeItem('avyro_user')
+      clearSession()
       location.href = '/'
     } catch (ex) {
       setRgpdMsg({ ok: false, text: errText(ex) })

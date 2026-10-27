@@ -66,15 +66,14 @@ export default function CalendarView({ items }) {
           if (day === null) return <div key={i} className="border-r border-b border-[#e2e8f0] bg-[#fafafa]" />
           const dayEvents = itemsByDay[day] || []
           const isToday = now.getDate() === day && now.getMonth() === month && now.getFullYear() === year
-          const bg = isToday ? '#eff6ff' : dayEvents.length ? '#f0fdf4' : '#fff'
+          const bg = isToday ? 'bg-[#eff6ff]' : dayEvents.length ? 'bg-[#f0fdf4]' : 'bg-white'
           return (
             <div
               key={i}
-              className="min-h-[52px] border-r border-b border-[#e2e8f0] p-1.5 transition-colors"
-              style={{ background: bg, cursor: dayEvents.length ? 'pointer' : 'default' }}
+              className={`min-h-[52px] border-r border-b border-[#e2e8f0] p-1.5 transition-colors ${bg} ${dayEvents.length ? 'cursor-pointer' : 'cursor-default'}`}
               onClick={() => dayEvents.length && setSelectedDay(day)}
             >
-              <div className="text-[0.8125rem]" style={{ fontWeight: isToday ? 700 : 400, color: isToday ? '#1d4ed8' : '#1e293b' }}>
+              <div className={`text-[0.8125rem] ${isToday ? 'font-bold text-[#1d4ed8]' : 'font-normal text-[#1e293b]'}`}>
                 {day}
               </div>
               <div className="mt-1 flex flex-wrap justify-center gap-0.5">

@@ -1,11 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api, enableGuestMode } from './api.js'
+import { useToast } from './ToastContext.jsx'
 import { MODES } from './modes.js'
 
 const DashboardContext = createContext(null)
 
 export function DashboardProvider({ children }) {
+  const showToast = useToast()
   const [searchParams] = useSearchParams()
   const isGuest = searchParams.get('guest') === '1'
   const modeParam = searchParams.get('mode')
@@ -39,8 +41,8 @@ export function DashboardProvider({ children }) {
     if (isGuest) return
     api('/companies/me')
       .then((c) => setCompanyTags(c.tags || []))
-      .catch(() => {})
-  }, [isGuest])
+      .catch(() => showToast('Impossible de charger les informations de votre structure.', 'error'))
+  }, [isGuest, showToast])
 
   const refreshBadges = useCallback(async () => {
     if (isGuest) return
@@ -48,8 +50,8 @@ export function DashboardProvider({ children }) {
       const counts = await api('/bookings/counts')
       const key = mode === 'room' ? 'pending_incoming_room' : 'pending_incoming_training'
       setBadgeCount(counts[key] || 0)
-    } catch {
-      /* silencieux */
+    } catch (ex) {
+      console.warn('Compteurs de réservations indisponibles', ex)
     }
   }, [isGuest, mode])
 
