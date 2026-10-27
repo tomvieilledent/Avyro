@@ -4,5 +4,6 @@ from .user import User
 from .training import Training
 from .room import Room
 from .booking import Booking
+from .token_blocklist import TokenBlocklist
 
-__all__ = ["Company", "User", "Training", "Room", "Booking"]
+__all__ = ["Company", "User", "Training", "Room", "Booking", "TokenBlocklist"]

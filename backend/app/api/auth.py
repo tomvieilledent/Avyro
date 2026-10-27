@@ -8,9 +8,13 @@ from flask.views import MethodView
 from flask_jwt_extended import (
     create_access_token,
     create_refresh_token,
+    decode_token,
+    get_jwt,
     jwt_required,
     get_jwt_identity,
 )
+from flask_jwt_extended.exceptions import JWTExtendedException
+from jwt.exceptions import PyJWTError
 from flask_smorest import Blueprint, abort
 from sqlalchemy import func, update
 from sqlalchemy.exc import IntegrityError
@@ -22,13 +26,16 @@ from app.schemas import (
     LoginSchema,
     UpdateProfileSchema,
     UserSchema,
+    ProfileUpdateResponseSchema,
     TokenResponseSchema,
     AccessTokenSchema,
     AcceptInviteSchema,
     InviteInfoQuerySchema,
     InviteInfoSchema,
     MessageSchema,
+    LogoutSchema,
 )
+from app.utils.jwt_handlers import revoke_token
 from app.utils.auth import current_user, db_get_user, _identity_to_id
 from app.utils.tokens import InvalidInviteToken, read_invite_token
 
@@ -47,9 +54,10 @@ blp = Blueprint(
 def _build_token_response(user: User) -> dict:
     """Construit la réponse d'authentification avec les deux tokens JWT."""
     identity = str(user.id)
+    claims = {"tv": user.token_version or 0}
     return {
-        "access_token": create_access_token(identity=identity),
-        "refresh_token": create_refresh_token(identity=identity),
+        "access_token": create_access_token(identity=identity, additional_claims=claims),
+        "refresh_token": create_refresh_token(identity=identity, additional_claims=claims),
         "user": user.to_dict(),
     }
 
@@ -151,7 +159,7 @@ class LoginView(MethodView):
 class RefreshView(MethodView):
     """Renouvelle l'access token via le refresh token."""
 
-    decorators = [jwt_required(refresh=True)]
+    decorators = [limiter.limit("30 per minute"), jwt_required(refresh=True)]
 
     @blp.response(200, AccessTokenSchema, description="Nouvel access token.")
     @blp.alt_response(401, description="Compte inexistant ou token invalide.")
@@ -159,9 +167,49 @@ class RefreshView(MethodView):
         """Émet un nouvel access token (nécessite le refresh token en Bearer)."""
         identity = get_jwt_identity()
         user_id = _identity_to_id(identity)
-        if user_id is None or db_get_user(user_id) is None:
+        user = db_get_user(user_id) if user_id is not None else None
+        if user is None:
             abort(401, message="Session expirée, reconnectez-vous.")
-        return {"access_token": create_access_token(identity=identity)}
+        return {
+            "access_token": create_access_token(
+                identity=identity,
+                additional_claims={"tv": user.token_version or 0},
+            )
+        }
+
+
+@blp.route("/logout")
+class LogoutView(MethodView):
+    """Révoque le token présenté (et, si fourni, le refresh token associé)."""
+
+    decorators = [jwt_required(verify_type=False)]
+
+    @blp.arguments(LogoutSchema, location="json")
+    @blp.response(200, MessageSchema, description="Session terminée.")
+    @blp.alt_response(400, description="Refresh token invalide.")
+    def post(self, args: dict):
+        """Déconnexion : le token Bearer et le refresh token fourni sont révoqués."""
+        payload = get_jwt()
+        refresh_payload = None
+        if args.get("refresh_token"):
+            try:
+                refresh_payload = decode_token(args["refresh_token"])
+            except (JWTExtendedException, PyJWTError):
+                abort(400, message="Refresh token invalide.")
+            if (
+                refresh_payload.get("type") != "refresh"
+                or refresh_payload.get("sub") != payload.get("sub")
+            ):
+                abort(400, message="Refresh token invalide.")
+        revoke_token(payload)
+        if refresh_payload is not None:
+            revoke_token(refresh_payload)
+        else:
+            # Refresh token inconnu : invalide tous les refresh tokens existants
+            user = current_user()
+            user.token_version = (user.token_version or 0) + 1
+        db.session.commit()
+        return {"message": "Déconnecté."}
 
 
 @blp.route("/me")
@@ -176,7 +224,11 @@ class MeView(MethodView):
         return current_user().to_dict()
 
     @blp.arguments(UpdateProfileSchema, location="json")
-    @blp.response(200, UserSchema, description="Profil mis à jour.")
+    @blp.response(
+        200, ProfileUpdateResponseSchema,
+        description="Profil mis à jour. Si le mot de passe change, la réponse "
+                    "contient aussi `access_token` et `refresh_token` neufs.",
+    )
     @blp.alt_response(409, description="Email déjà utilisé par un autre compte.")
     @blp.alt_response(422, description="Données invalides.")
     def patch(self, args: dict):
@@ -196,10 +248,20 @@ class MeView(MethodView):
             if field in args:
                 setattr(user, field, args[field])
 
-        if "password" in args:
+        password_changed = "password" in args
+        if password_changed:
             user.set_password(args["password"])
 
         _commit_or_conflict("Cet email est déjà utilisé.")
+        if password_changed:
+            # token_version incrémenté : les anciens tokens sont invalides,
+            # on réémet une paire neuve pour la session courante.
+            tokens = _build_token_response(user)
+            return {
+                **user.to_dict(),
+                "access_token": tokens["access_token"],
+                "refresh_token": tokens["refresh_token"],
+            }
         return user.to_dict()
 
     @blp.response(200, MessageSchema, description="Compte supprimé.")
@@ -231,6 +293,7 @@ class MeView(MethodView):
             db.session.delete(company)  # cascade → supprime User aussi
         else:
             db.session.delete(user)
+        revoke_token(get_jwt())
         db.session.commit()
         return {"message": "Compte supprimé conformément au droit à l'effacement."}
 

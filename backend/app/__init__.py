@@ -8,8 +8,10 @@ Swagger UI disponible à /api/docs une fois l'app lancée.
 """
 import os
 
+import click
 from flask import Flask, jsonify
 
+from .security import init_security
 from .config import config_by_name, validate_production_config
 from .extensions import db, migrate, jwt, cors, smorest, limiter
 
@@ -32,6 +34,7 @@ def create_app(config_name: str | None = None) -> Flask:
     _init_extensions(app)
     _register_blueprints(app)
     _register_cli(app)
+    init_security(app)
     _register_error_handlers(app)
 
     # Optionnel : sert aussi le frontend statique (dev sans proxy nginx)
@@ -61,6 +64,8 @@ def _init_extensions(app: Flask) -> None:
     # Import des modèles pour que SQLAlchemy les enregistre (nécessaire pour
     # create_all et les migrations Alembic)
     from . import models  # noqa: F401
+    from .utils.jwt_handlers import register_jwt_handlers
+    register_jwt_handlers()
 
 
 def _register_blueprints(app: Flask) -> None:
@@ -121,7 +126,11 @@ def _register_cli(app: Flask) -> None:
 
     @app.cli.command("create-db")
     def create_db_cmd():
-        """Crée toutes les tables (dev/test uniquement, utiliser Alembic en prod)."""
+        """Crée toutes les tables (dev/test uniquement ; prod : flask db upgrade)."""
+        if app.config.get("APP_ENV") == "production":
+            raise click.ClickException(
+                "create-db est interdit en production : utilisez `flask db upgrade`."
+            )
         db.create_all()
         print("Tables créées.")
 

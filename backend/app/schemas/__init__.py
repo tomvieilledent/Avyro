@@ -4,12 +4,14 @@ from .auth import (
     LoginSchema,
     UpdateProfileSchema,
     UserSchema,
+    ProfileUpdateResponseSchema,
     TokenResponseSchema,
     AccessTokenSchema,
     InviteSchema,
     AcceptInviteSchema,
     InviteInfoQuerySchema,
     InviteInfoSchema,
+    LogoutSchema,
 )
 from .company import UpdateCompanySchema, CompanySchema
 from .training import (
@@ -36,8 +38,8 @@ from .booking import (
 )
 
 __all__ = [
-    "RegisterSchema", "LoginSchema", "UpdateProfileSchema", "UserSchema",
-    "TokenResponseSchema", "AccessTokenSchema", "InviteSchema", "AcceptInviteSchema", "InviteInfoQuerySchema", "InviteInfoSchema",
+    "RegisterSchema", "LoginSchema", "UpdateProfileSchema", "UserSchema", "ProfileUpdateResponseSchema",
+    "TokenResponseSchema", "AccessTokenSchema", "InviteSchema", "AcceptInviteSchema", "InviteInfoQuerySchema", "InviteInfoSchema", "LogoutSchema",
     "UpdateCompanySchema", "CompanySchema",
     "TrainingCreateSchema", "TrainingUpdateSchema", "TrainingQuerySchema",
     "TrainingSchema", "TrainingReportSchema",

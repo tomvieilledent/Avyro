@@ -85,6 +85,13 @@ class UserSchema(Schema):
     created_at = fields.Str(dump_only=True)
 
 
+class ProfileUpdateResponseSchema(UserSchema):
+    """Réponse de PATCH /me : profil + nouveaux tokens si le mot de passe change."""
+
+    access_token = fields.Str(dump_only=True)
+    refresh_token = fields.Str(dump_only=True)
+
+
 class TokenResponseSchema(Schema):
     """Réponse d'un login ou register réussi."""
 
@@ -128,3 +135,9 @@ class AcceptInviteSchema(Schema):
     last_name = fields.Str(required=True, validate=validate.Length(min=1, max=120))
     phone = fields.Str(required=True, validate=validate.Length(min=6, max=30))
     password = fields.Str(required=True, validate=PASSWORD_LEN, load_only=True)
+
+
+class LogoutSchema(Schema):
+    refresh_token = fields.String(
+        load_default=None, allow_none=True, validate=validate.Length(max=4096)
+    )

@@ -21,7 +21,7 @@ class Training(TimestampMixin, db.Model):
     Cycle de vie du statut :
         open → closed   (fermeture manuelle par le provider)
         open → cancelled (annulation)
-    Les formations terminées (ends_at dépassé) sont purgées par la tâche
+    Les offres terminées (ends_at dépassé) sont purgées par la tâche
     de maintenance planifiée.
 
     shared_seats   = nombre de places proposées à la mutualisation

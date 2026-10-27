@@ -6,10 +6,13 @@ Tâches de maintenance planifiées.
    Atomic via mise à jour conditionnelle (reminder_sent=False → True) pour
    supporter plusieurs workers/schedulers sans doublon.
 
-2. purge_finished_trainings() — supprime les Training dont ends_at est dépassé.
-   La cascade ORM supprime automatiquement les Booking associés.
+2. purge_finished_offers() — supprime les offres terminées (Training ET Room)
+   dont ends_at est dépassé. La cascade ORM supprime les Booking associés.
+   Décision produit (S16) : les Room terminées sont purgées comme les Training.
 
-Les deux fonctions sont idempotentes : les appeler plusieurs fois est sans
+3. purge_expired_blocklist() — supprime de la blocklist JWT les jti expirés.
+
+Les fonctions sont idempotentes : les appeler plusieurs fois est sans
 effet indésirable.
 """
 import os
@@ -20,6 +23,7 @@ _now_utc = lambda: datetime.now(timezone.utc).replace(tzinfo=None)  # noqa: E731
 from app.extensions import db
 from app.models import Training, Room
 from app.services.mailer import send_email
+from app.utils.jwt_handlers import purge_expired_blocklist
 
 
 def minus_one_business_day(dt: datetime) -> datetime:
@@ -111,11 +115,11 @@ def send_due_reminders(now: datetime | None = None) -> int:
     return sent
 
 
-def purge_finished_trainings(now: datetime | None = None) -> int:
+def purge_finished_offers(now: datetime | None = None) -> int:
     """
-    Supprime les Training dont ends_at est dépassé.
+    Supprime les offres terminées : Training ET Room dont ends_at est dépassé.
 
-    Retourne le nombre de Training supprimées. La cascade SQLAlchemy
+    Retourne le nombre total d'offres supprimées. La cascade SQLAlchemy
     supprime automatiquement les Booking associés.
     """
     now = now or _now_utc()
@@ -134,14 +138,15 @@ def run_maintenance(app) -> dict:
     """
     Lance les deux tâches de maintenance dans le contexte de l'app.
 
-    Retourne un résumé {reminders: int, purged: int}.
+    Retourne un résumé {reminders: int, purged: int} (purged = offres Training + Room).
     """
     with app.app_context():
         reminders = send_due_reminders()
-        purged = purge_finished_trainings()
+        purged = purge_finished_offers()
+        purge_expired_blocklist()
         if reminders or purged:
             app.logger.info(
-                "Maintenance : %s rappel(s) envoyé(s), %s formation(s) purgée(s).",
+                "Maintenance : %s rappel(s) envoyé(s), %s offre(s) purgée(s).",
                 reminders,
                 purged,
             )

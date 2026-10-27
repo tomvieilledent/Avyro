@@ -6,6 +6,22 @@ production (PostgreSQL). Sélection via la variable d'env FLASK_ENV.
 """
 import os
 from datetime import timedelta
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Charge .env (racine du dépôt, puis backend/) avant la lecture des variables.
+# Les variables déjà présentes dans l'environnement restent prioritaires.
+_BACKEND_DIR = Path(__file__).resolve().parents[1]
+
+
+def load_env_files(paths) -> None:
+    """Charge les fichiers .env existants sans écraser l'environnement."""
+    for path in paths:
+        load_dotenv(path, override=False)
+
+
+load_env_files((_BACKEND_DIR.parent / ".env", _BACKEND_DIR / ".env"))
 
 _MIN_SECRET_LENGTH = 32
 _WEAK_SECRET_PREFIXES = ("dev-", "change-me", "changeme")
@@ -17,6 +33,17 @@ def _parse_origins(raw: str) -> "str | list[str]":
     if raw == "*":
         return "*"
     return [o.strip() for o in raw.split(",") if o.strip()]
+
+
+def _db_url(default: str) -> str:
+    """DATABASE_URL ; `postgresql://` est forcé sur psycopg2 (driver installé,
+    SQLAlchemy 2.1 prendrait sinon psycopg 3 par défaut)."""
+    url = os.getenv("DATABASE_URL", default)
+    if url.startswith("postgresql://"):
+        url = "postgresql+psycopg2://" + url[len("postgresql://"):]
+    elif url.startswith("postgres://"):
+        url = "postgresql+psycopg2://" + url[len("postgres://"):]
+    return url
 
 
 class ConfigError(RuntimeError):
@@ -42,9 +69,7 @@ class Config:
     INVITE_MAX_AGE = 7 * 24 * 3600
 
     # ── Base de données ───────────────────────────────────────────────────────
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URL", "postgresql://avyro:avyro@db:5432/avyro"
-    )
+    SQLALCHEMY_DATABASE_URI = _db_url("postgresql://avyro:avyro@db:5432/avyro")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         # Relance la connexion si elle est périmée dans le pool
@@ -94,12 +119,15 @@ class Config:
     # Désactivé en test ; activé en prod
     RATELIMIT_ENABLED = True
 
+    # Nombre de reverse proxys de confiance devant l'app (ProxyFix) ; 0 = aucun
+    TRUSTED_PROXY_COUNT = int(os.getenv("TRUSTED_PROXY_COUNT", "0"))
+
     JSON_SORT_KEYS = False
 
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///dev.db")
+    SQLALCHEMY_DATABASE_URI = _db_url("sqlite:///dev.db")
     # Limites désactivées en dev pour ne pas gêner le développement
     RATELIMIT_ENABLED = False
 
@@ -119,6 +147,10 @@ class ProductionConfig(Config):
     PUBLIC_URL = os.getenv("PUBLIC_URL", "")
     # Pas de défaut permissif en production
     CORS_ORIGINS = _parse_origins(os.getenv("CORS_ORIGINS", ""))
+    # Swagger UI et openapi.json désactivés en production (None = non enregistrés)
+    OPENAPI_URL_PREFIX = (
+        "/api" if os.getenv("API_DOCS_ENABLED", "").lower() in ("1", "true") else None
+    )
 
 
 def _check_secret(name: str, value: "str | None") -> None:

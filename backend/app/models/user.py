@@ -1,4 +1,5 @@
 """Modèle User — compte utilisateur rattaché à une Company."""
+from sqlalchemy import func
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from app.extensions import db
@@ -13,6 +14,10 @@ class User(TimestampMixin, db.Model):
     """
 
     __tablename__ = "users"
+    # Unicité insensible à la casse, garantie par la base (en plus de unique=True)
+    __table_args__ = (
+        db.Index("uq_users_email_lower", func.lower(db.column("email")), unique=True),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
@@ -22,6 +27,11 @@ class User(TimestampMixin, db.Model):
     phone = db.Column(db.String(30), nullable=False)
     # "admin" | "member"
     role = db.Column(db.String(20), nullable=False, default="member")
+
+    # Incrémenté au changement de mot de passe : invalide les refresh tokens
+    token_version = db.Column(
+        db.Integer, nullable=False, default=0, server_default="0"
+    )
 
     company_id = db.Column(
         db.Integer, db.ForeignKey("companies.id"), nullable=False, index=True
@@ -37,6 +47,11 @@ class User(TimestampMixin, db.Model):
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
+        if self.id is not None:
+            # Compte existant : révoque les refresh tokens déjà émis
+            self.token_version = (self.token_version or 0) + 1
+        else:
+            self.token_version = 0
 
     def check_password(self, password: str) -> bool:
         return check_password_hash(self.password_hash, password)

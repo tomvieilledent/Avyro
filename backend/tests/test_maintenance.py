@@ -203,7 +203,7 @@ def test_purge_finished_training(app):
         db.session.commit()
         tid = t.id
 
-        purged = maintenance.purge_finished_trainings()
+        purged = maintenance.purge_finished_offers()
         assert purged == 1
         assert db.session.get(Training, tid) is None
 
@@ -211,7 +211,7 @@ def test_purge_finished_training(app):
 def test_purge_does_not_remove_future_training(app):
     with app.app_context():
         _seed_training(starts_in_hours=48)
-        assert maintenance.purge_finished_trainings() == 0
+        assert maintenance.purge_finished_offers() == 0
 
 
 def test_purge_does_not_remove_ongoing_training(app):
@@ -231,13 +231,13 @@ def test_purge_does_not_remove_ongoing_training(app):
         db.session.add(t)
         db.session.commit()
 
-        assert maintenance.purge_finished_trainings() == 0
+        assert maintenance.purge_finished_offers() == 0
 
 
 # ── Purge : salles ────────────────────────────────────────────────────────────
 
 def test_purge_finished_room(app):
-    """Les salles terminées sont supprimées par purge_finished_trainings."""
+    """Les salles terminées sont supprimées par purge_finished_offers."""
     with app.app_context():
         provider = Company(name="RoomP", kind="pro")
         db.session.add(provider)
@@ -254,7 +254,7 @@ def test_purge_finished_room(app):
         db.session.commit()
         rid = r.id
 
-        purged = maintenance.purge_finished_trainings()
+        purged = maintenance.purge_finished_offers()
         assert purged == 1
         assert db.session.get(Room, rid) is None
 
@@ -262,7 +262,7 @@ def test_purge_finished_room(app):
 def test_purge_does_not_remove_future_room(app):
     with app.app_context():
         _seed_room(starts_in_hours=48)
-        assert maintenance.purge_finished_trainings() == 0
+        assert maintenance.purge_finished_offers() == 0
 
 
 # ── run_maintenance ───────────────────────────────────────────────────────────
