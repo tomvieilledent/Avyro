@@ -1,141 +1,162 @@
 # Cahier des charges – Avyro
 
-Statut : brouillon. Priorités : P0 bloquant, P1 important, P2 dette.
+Document destiné à l'orchestrateur. Mis à jour le 2026-10-27 d'après le code de `main` (HEAD `343e4c3`).
+Priorités : P0 bloquant, P1 important, P2 dette.
+Légende d'état : ✅ fait et vérifié dans le code · ⚠️ partiel · ❌ à faire · ❓ non vérifié.
 
-## 1. Finalité et périmètre existant
+## 1. Finalité
 
-Avyro est une plateforme B2B de mutualisation. Des entreprises publient des offres (places de formation, salles) et d'autres entreprises les réservent.
+Avyro est une plateforme B2B de mutualisation entre entreprises. Un seul compte donne accès à deux services :
 
-- Backend : Python / Flask (flask-smorest, SQLAlchemy).
-- Frontend : React (Vite) + Tailwind CSS, SPA routée par `react-router-dom`.
-- Règles de stack : voir `CLAUDE.md` (pas de CSS hors Tailwind et `src/index.css`, API en chemins relatifs `/api/...`).
+- **Avyro Training** : une entreprise publie les places restantes d'une formation inter-entreprises (prix par place) ; d'autres entreprises les réservent.
+- **Avyro Room** : une entreprise sous-loue des salles de réunion inoccupées sur des créneaux ; d'autres entreprises les réservent.
 
-Périmètre de ce document : état actuel, écarts constatés, besoins déduits, lots de correction.
+Objectif : partager les coûts (demandeur) et rentabiliser les ressources inutilisées (fournisseur).
 
-## 2. Existant
+## 2. Contraintes techniques (issues de `CLAUDE.md`)
 
-### 2.1 Modèles
+- Backend : Python uniquement (Flask 3, SQLAlchemy 2, Flask-JWT-Extended, flask-smorest/OpenAPI, Flask-Migrate, Flask-Limiter, Flask-Cors, APScheduler, Gunicorn). SQLite en dev, PostgreSQL en prod.
+- Frontend : React 19 + Vite + Tailwind CSS 3, SPA routée par `react-router-dom` 7. Police Inter via `@fontsource/inter`.
+- Pas de CSS hors classes Tailwind et `src/index.css`. Pas de `style=""` sauf valeurs dynamiques calculées en JS (toute exception est à signaler).
+- Le client appelle l'API en chemins relatifs `/api/...` (`src/lib/api.js`). En dev, Vite relaie `/api` vers Flask sur `:8080`. Aucune URL absolue.
+- Flask (`SERVE_FRONTEND`) sert `index.html` en fallback pour toute route non-`/api/*` sans fichier statique correspondant.
+- L'email d'invitation pointe vers `/invite?token=...` (route client).
+- Commits : Conventional Commits, un type par commit, jamais de trailer `Co-Authored-By`.
 
-| Modèle | Rôle |
-|---|---|
-| Company | Entreprise (SIRET requis pour publier) |
-| User | Utilisateur rattaché à une Company |
-| Training | Offre de formation (places partagées, statut) |
-| Room | Offre de salle (statut `open`, etc.) |
-| Booking | Réservation d'une Training ou d'une Room par une Company ; `requested_by_id` NOT NULL ; statuts dont `pending`, `confirmed` |
+## 3. Périmètre fonctionnel
 
-### 2.2 API
+### 3.1 Acteurs et comptes
+
+- **Company** (structure) : nom, SIRET (requis pour publier), adresse, fiche publique.
+- **User** : rattaché à une Company, rôle `admin` (créateur) ou `member`.
+- Inscription avec consentement RGPD ; connexion JWT (access 30 min + refresh) ; profil modifiable ; fiche entreprise.
+- Invitation de collaborateurs par email (lien à jeton signé, 7 jours, usage unique).
+- RGPD : export JSON des données (`GET /api/auth/me/export`), suppression du compte (`DELETE /api/auth/me`, anonymisation des réservations : `Booking.requested_by_id` nullable).
+
+### 3.2 Offres (Training / Room)
+
+- Champs : titre, description, début/fin, lieu ou distanciel, places proposées (`shared_seats`), prix par place, tags, géolocalisation.
+- Statuts : ouverte, complète, en cours, terminée (calcul automatique), plus `closed`/`cancelled`.
+- CRUD réservé au fournisseur propriétaire ; rapports (`/reports`) listant les inscrits confirmés.
+
+### 3.3 Catalogue
+
+- Recherche texte (titre, lieu, description), filtre par tag.
+- Filtre « autour de moi » (Haversine, rayon 5–100 km) ; les offres distancielles sont toujours incluses.
+- Filtres combinables : dates, prix max, places min, distanciel.
+- Indicateur de remplissage (vert < 60 %, orange < 90 %, rouge ≥ 90 %), vue liste et vue calendrier mensuel.
+- Géocodage d'adresses via proxy backend `/api/geocode`.
+
+### 3.4 Réservations
+
+- Création d'une demande (`pending`) avec nombre de places et note (500 car.).
+- Le fournisseur confirme ou refuse (`PATCH`) ; le demandeur annule sa demande en attente (statut `cancelled`).
+- Transition autorisée uniquement depuis `pending` ; surbooking évité par verrou (`with_for_update`, `utils/offers.py`).
+- Compteurs de demandes en attente (badge) ; liste des demandes reçues.
+
+### 3.5 Notifications et tâches planifiées
+
+- Emails SMTP : nouvelle demande (fournisseur), confirmation, refus (demandeur), annulation (fournisseur), invitation. Sans `MAIL_SERVER`, écriture dans `backend/dev_outbox.log`.
+- Rappel fournisseur J-1 ouvré avec liste des inscrits ; purge des offres terminées. Planificateur activé par `RUN_SCHEDULER=1`.
+
+### 3.6 Export
+
+- Export CSV des inscrits côté navigateur, avec neutralisation de l'injection de formules.
+
+## 4. Architecture
+
+### 4.1 API (préfixe `/api`, doc Swagger `/api/docs`)
 
 | Préfixe | Routes |
 |---|---|
-| `/api/auth` | `POST /register`, `POST /login`, `POST /refresh`, `GET/PATCH/DELETE /me`, `GET /me/export`, `POST /accept-invite` |
-| `/api/companies` | `GET/PATCH /me`, `POST /me/invite`, `GET /<id>`, `GET /<id>/offerings` |
-| `/api/trainings` | `GET /reports`, `GET/POST /`, `GET/PATCH/DELETE /<id>` |
-| `/api/rooms` | `GET /reports`, `GET/POST /`, `GET/PATCH/DELETE /<id>` |
-| `/api/bookings` | `GET /counts`, `GET /incoming`, `GET/POST /`, `PATCH/DELETE /<id>` |
-| `/api/health` | Santé |
+| `/auth` | `POST /register`, `POST /login`, `POST /refresh`, `GET/PATCH/DELETE /me`, `GET /me/export`, `GET /invite-info`, `POST /accept-invite` |
+| `/companies` | `GET/PATCH /me`, `POST /me/invite`, `GET /<id>`, `GET /<id>/offerings` |
+| `/trainings`, `/rooms` | `GET /reports`, `GET/POST ""`, `GET/PATCH/DELETE /<id>` |
+| `/bookings` | `GET /counts`, `GET /incoming`, `GET/POST ""`, `PATCH/DELETE /<id>` |
+| `/geocode` | `GET ""` (proxy Nominatim) |
+| `/health` | Santé |
 
-### 2.3 Pages frontend
+### 4.2 Backend (`backend/app`)
 
-`/` (Landing), `/login`, `/register`, `/invite` (jeton en query), `/dashboard`, `/profile`, `/company`, `/privacy`. Toute autre route redirige vers `/`.
+`api/` (blueprints) · `models/` (Company, User, Training, Room, Booking) · `schemas/` (Marshmallow) · `services/` (mailer, maintenance) · `utils/` (auth, geo, offers, tokens) · `config.py` (Dev/Test/Prod, validation des secrets) · `extensions.py`.
 
-### 2.4 Fonctionnalités transverses
+### 4.3 Frontend (`frontend/src`)
 
-- Cycle de réservation : demande (`pending`), confirmation par le propriétaire de l'offre, annulation.
-- Emails : notifications de réservation, invitation de collaborateur.
-- Rappel J-1 : tâche planifiée (scheduler, `RUN_SCHEDULER`).
-- RGPD : export (`GET /api/auth/me/export`) et suppression (`DELETE /api/auth/me`) du compte.
+Routes : `/` Landing, `/login`, `/register`, `/invite`, `/dashboard`, `/profile`, `/company`, `/privacy` ; toute autre route redirige vers `/`.
+`pages/` · `components/dashboard/` (Catalog, Mine, Incoming, Bookings, Reports, CalendarView, OfferCard, modales) · `lib/` (api, contextes Auth/Dashboard/Toast, geocode, format).
+Client API avec refresh transparent du token et file d'attente des requêtes concurrentes.
 
-### 2.5 Qualité
+### 4.4 Configuration (`.env.example`)
 
-- 164 tests backend passent.
-- Build frontend OK.
-- Couverture backend : 93 %.
+`DATABASE_URL`, `SECRET_KEY`, `JWT_SECRET_KEY` (≥ 32 car., refus des valeurs faibles en prod), `PUBLIC_URL` (obligatoire en prod), `CORS_ORIGINS`, `RATELIMIT_STORAGE_URI`, `SERVE_FRONTEND`, `RUN_SCHEDULER`, `MAIL_*`, `POSTGRES_*`.
 
-## 3. Écarts et besoins déduits
+## 5. État actuel
 
-### 3.1 P0 – Sécurité / robustesse
+| Mesure | Valeur |
+|---|---|
+| Tests backend | **214 passent**, 0 échec |
+| Couverture backend | **95 %** (mailer 81 %, maintenance 85 %, utils/auth 76 %) |
+| Build frontend (`vite build`) | OK |
+| Tests / lint frontend | Aucun |
+| Dernier commit | `343e4c3 docs: ajouter le cahier des charges` |
+| Working tree | propre (hors `.claude/` non suivi) |
 
-| ID | Constat | Besoin | Réf. |
-|---|---|---|---|
-| B1 | Le jeton d'invitation est un access JWT ; utilisé en Bearer, il provoque un 500 | Jeton distinct à usage unique (itsdangerous ou JWT dédié) | companies.py:82-91, utils/auth.py:14,23 |
-| B2 | Secrets par défaut utilisables en prod | Échec au démarrage en `ProductionConfig` si secret absent ou faible | config.py:13-14 |
-| B3 | PATCH booking sans contrôle de transition ; surbooking non atomique | Exiger l'état `pending` ; verrou `with_for_update` | bookings.py:180-193 |
-| B4 | `send_email` après commit sans try/except : 500 alors que l'action est faite | Capturer et journaliser l'échec d'envoi | bookings.py:155,198,212,249 |
-| B5 | Emails non normalisés, unicité sensible à la casse, `IntegrityError` → 500 | Minuscules, unicité insensible à la casse, 409 propre | auth.py:72-97, companies.py:79 |
-| B6 | `DELETE /me` avec réservations → `IntegrityError` (`Booking.requested_by_id` NOT NULL) | Stratégie d'anonymisation ou de réaffectation | models/booking.py |
-| B7 | `company_name` non strippé | `strip()` à l'entrée | auth.py:75,80 |
+### 5.1 Corrigé depuis le brouillon précédent
 
-### 3.2 P1 – Important
-
-| ID | Constat | Besoin |
+| ID | Sujet | État |
 |---|---|---|
-| S1 | Refresh token jamais utilisé côté front : session de 30 min puis redirection brutale (api.js:56-59) | Rafraîchissement transparent |
-| S2 | Refresh ne vérifie pas l'existence de l'utilisateur | Vérifier l'utilisateur |
-| S3 | POST booking sans contrôle d'offre future ni de doublon (bookings.py:135-139) | Refuser offre passée et doublon |
-| S4 | PATCH offre : `shared_seats` sous les places confirmées ; validation de dates partielle (trainings.py:128-133, rooms.py) | Valider contre l'état persistant |
-| S5 | `GET /trainings/<id>` expose les offres closed/cancelled (trainings.py:118-119) | Restreindre la visibilité |
-| S6 | CORS `*` (`__init__.py:52`) | Liste d'origines configurable |
-| S7 | Rate limit `memory://` sans ProxyFix ; pas de limite sur accept-invite et refresh | Stockage partagé, ProxyFix, limites ajoutées |
-| S8 | Pas de révocation de token | Mécanisme de révocation |
-| S9 | URL d'invitation basée sur `request.host_url` (companies.py:93) | Config `PUBLIC_URL` |
-| S10 | Google Fonts externe (index.css:1), enjeu RGPD | Auto-héberger les polices |
-| S11 | `style=` statiques dans CalendarView.jsx:74,77 (viole CLAUDE.md) | Classes Tailwind |
-| S12 | Nominatim appelé en direct (nominatim.js) | Proxy backend |
-| S13 | Injection de formules CSV (ReportsPanel.jsx:6-14) | Neutraliser `= + - @` en début de cellule |
-| S14 | En-têtes de sécurité absents ; `/api/docs` public en prod | Ajouter les en-têtes ; désactiver ou protéger la doc en prod |
-| S15 | Pas de migrations Alembic (`create_all`), contrairement au README | Mettre en place Alembic |
-| S16 | `purge_finished_trainings` supprime aussi les Room | Corriger le périmètre de la purge |
-| S17 | Scheduler désactivé par défaut (`RUN_SCHEDULER`) | Documenter et définir le déploiement du scheduler |
-| S18 | Annulation par le demandeur = DELETE physique ; README annonce « cancelled » | Aligner code et README (statut `cancelled`) |
+| B1 | Jeton d'invitation dédié (itsdangerous, `utils/tokens.py`) | ✅ |
+| B2 | Échec au démarrage en prod si secret absent/faible ; `PUBLIC_URL` obligatoire | ✅ |
+| B3 | PATCH booking exige `pending` ; verrou anti-surbooking | ✅ |
+| B6 | Suppression de compte : anonymisation du demandeur | ✅ |
+| S1 | Refresh transparent côté front | ✅ |
+| S6 | CORS configurable (`CORS_ORIGINS`, vide par défaut en prod) | ✅ |
+| S9 | URL d'invitation basée sur `PUBLIC_URL` | ✅ |
+| S11 | `style=` statiques retirés (restent 8 usages dynamiques légitimes : largeur de barre `OfferCard`, filtres `grayscale` `LandingPage`) | ✅ |
+| S12 | Géocodage via proxy backend | ✅ |
+| S13 | Neutralisation des formules CSV | ✅ |
+| S18 | Annulation = statut `cancelled` | ✅ |
+| D11 | `register.html` vide supprimé | ✅ |
 
-### 3.3 P2 – Dette
+### 5.2 Reste à faire (vérifié dans le code)
 
-| ID | Constat |
-|---|---|
-| D1 | `trainings.py` / `rooms.py` et logique bookings training/room dupliquées |
-| D2 | `Training.__repr__` lit `self.kind` (training.py:85) |
-| D3 | Docstring `geo.py` incohérente |
-| D4 | `ilike` sans échappement, pas de pagination, N+1 |
-| D5 | Imports inutiles ; `admin_required` inutilisé |
-| D6 | `training_id=0` accepté (schemas/booking.py) |
-| D7 | Pas de limites de longueur (company_name, tags, password) |
-| D8 | `JSON.parse` sans try/catch (api.js:30) |
-| D9 | `ProfilePage` duplique `clearSession` ; `catch{}` silencieux |
-| D10 | Gros composants |
-| D11 | `frontend/register.html` vide |
-| D12 | Aucun test ni lint frontend |
-| D13 | Tests manquants : jeton d'invitation en Bearer, transitions booking, concurrence |
-| D14 | README obsolète (63 tests vs 164, scripts npm, Tailwind, pages, seed, Alembic) |
-| D15 | `seed_demo.py` : chemin en dur et SQL brut |
-| D16 | `.env.example` non chargé (pas de `load_dotenv`) |
-| D17 | Pas de Docker alors que variables `POSTGRES_*` |
-| D18 | SIRET requis pour publier non documenté |
-| D19 | Mailer couvert à 53 % |
-
-## 4. Critères d'acceptation par lot
-
-| Lot | Critères |
-|---|---|
-| L1 | Jeton d'invitation en Bearer → 401/422, jamais 500. Jeton d'invitation inutilisable une 2e fois. Démarrage en production refusé si `SECRET_KEY` / `JWT_SECRET_KEY` absent ou faible. Test dédié pour chaque cas. |
-| L2 | PATCH sur booking non `pending` → 409. Deux confirmations concurrentes ne dépassent pas `shared_seats`. Échec d'envoi d'email : réponse de succès et erreur journalisée. Doublon et offre passée refusés. PATCH offre sous les places confirmées refusé. |
-| L3 | Emails stockés en minuscules ; doublon à casse différente → 409. `company_name` strippé. `DELETE /me` avec réservations → 204, aucune `IntegrityError`, export cohérent. Refresh transparent côté front ; refresh d'un utilisateur supprimé refusé. |
-| L4 | Plus de `style=` statique (hors valeurs dynamiques JS). Aucune requête vers `fonts.googleapis.com` ni `nominatim.openstreetmap.org` depuis le navigateur. Export CSV : cellules débutant par `= + - @` neutralisées. |
-| L5 | CORS limité aux origines configurées. Limiteur sur accept-invite et refresh, stockage partagé, ProxyFix actif. En-têtes de sécurité présents. `/api/docs` inaccessible en prod. `GET /trainings/<id>` n'expose pas closed/cancelled aux tiers. |
-| L6 | `flask db upgrade` crée le schéma depuis zéro. `create_all` retiré du chemin de production. `PUBLIC_URL` utilisée dans les liens d'invitation. Déploiement reproductible (Docker ou équivalent). Scheduler documenté. Purge sans suppression de Room. |
-| L7 | Logique training/room factorisée sans régression (164 tests verts, couverture >= 93 %). Tests et lint frontend en CI. README aligné sur le code. Mailer >= 80 % de couverture. |
-
-## 5. Lots proposés
-
-| Lot | Contenu | IDs | Priorité |
+| ID | Prio | Constat | Besoin |
 |---|---|---|---|
-| L1 | Sécurité des tokens, secrets, config | B1, B2, S8, S9 | P0 |
-| L2 | Intégrité des réservations (transitions, atomicité, emails, doublons) | B3, B4, S3, S4, S18 | P0 |
-| L3 | Comptes (emails, suppression, refresh/session) | B5, B6, B7, S1, S2, D7 | P0 |
-| L4 | Conformité CLAUDE.md / RGPD front (`style=`, polices, Nominatim, CSV) | S10, S11, S12, S13 | P1 |
-| L5 | Durcissement (CORS, rate limit, en-têtes, docs, visibilité) | S5, S6, S7, S14 | P1 |
-| L6 | Migrations et déploiement | S15, S16, S17, D16, D17 | P1 |
-| L7 | Refactor, tests front, README | D1–D6, D8–D15, D18, D19 | P2 |
+| S15 | P1 | Aucun dossier `migrations/` ; schéma créé par `create_all` | Initialiser Alembic, migration initiale, retirer `create_all` du chemin prod |
+| S14 | P1 | Aucun en-tête de sécurité ; `/api/docs` public en prod | En-têtes (CSP, nosniff, frame, HSTS) ; doc désactivée ou protégée en prod |
+| S7 | P1 | Limiteur sur `memory://` par défaut, pas de ProxyFix | Stockage partagé en prod, `ProxyFix`, limites sur `accept-invite` et `refresh` (à vérifier) |
+| S8 | P1 | Pas de révocation de token (pas de `jti`/blocklist) | Mécanisme de révocation (logout, suppression de compte) |
+| S10 | P1 | `frontend/index.html:8` garde un `preconnect` vers `fonts.googleapis.com` (police déjà auto-hébergée) | Supprimer le lien |
+| S16 | P1 | `purge_finished_trainings` supprime aussi les `Room` (docstring parle de Training seulement) | Trancher le comportement voulu, aligner code et docstring |
+| S17 | P1 | Scheduler désactivé par défaut | Documenter le déploiement (un seul worker) |
+| D16 | P2 | `.env.example` non chargé (pas de `load_dotenv`) | Charger `.env` |
+| D17 | P2 | Pas de Docker alors que `POSTGRES_*` existe | Dockerfile + compose |
+| D12 | P2 | Aucun test ni lint frontend | Vitest + ESLint, CI |
+| D14 | P2 | README obsolète (HTML/JS vanilla, 63 tests, `dist/styles.css`, `/company.html`, Google Fonts) | Réécrire selon la stack réelle |
+| D1 | P2 | Duplication `trainings.py`/`rooms.py` et logique bookings | Factoriser sans régression |
+| D13/D19 | P2 | Couverture : `utils/auth.py` 76 %, mailer 81 % | Combler, viser ≥ 85 % partout |
+| D15 | P2 | `seed_demo.py` : chemin en dur, SQL brut | Nettoyer |
+| D18 | P2 | Règle « SIRET requis pour publier » non documentée | Documenter |
 
-## 6. Questions ouvertes
+### 5.3 À re-vérifier (état incertain, non contrôlé dans cette passe)
 
+S2 (refresh d'un utilisateur supprimé), S3 (offre passée / doublon), S4 (PATCH offre sous les places confirmées), S5 (visibilité `closed`/`cancelled` sur `GET /<id>`), B4 (try/except sur `send_email`), B5/B7 (normalisation email, strip `company_name`), D2–D10.
+
+## 6. Critères d'acceptation des lots restants
+
+| Lot | Contenu | Critères |
+|---|---|---|
+| L-A Migrations & déploiement (P1) | S15, S16, S17, D16, D17 | `flask db upgrade` crée le schéma depuis zéro ; `create_all` absent du chemin prod ; purge conforme à la décision prise ; Docker reproductible ; scheduler documenté |
+| L-B Durcissement (P1) | S7, S8, S14, S5 | En-têtes présents ; `/api/docs` inaccessible en prod ; limiteur à stockage partagé et ProxyFix ; token révoqué refusé ; tests dédiés |
+| L-C Conformité front (P1) | S10 | Aucune requête vers `fonts.googleapis.com` ni `nominatim.openstreetmap.org` depuis le navigateur |
+| L-D Vérifications (P1) | §5.3 | Chaque point confirmé par un test ou corrigé |
+| L-E Qualité (P2) | D1, D12–D15, D18, D19 | 214 tests toujours verts, couverture ≥ 95 % ; tests + lint frontend en CI ; README aligné sur le code |
+
+## 7. Fonctionnalités envisagées (hors périmètre actuel)
+
+PWA/mobile · tableau de bord analytique · avis · liste d'attente · offres récurrentes · vue carte · paiement Stripe + factures PDF · forfaits multi-places · contrats de sous-location · vérification SIRET · messagerie par réservation · catalogue public · export iCal · SSO/SAML · webhooks · API publique · interface admin · i18n · archivage légal.
+
+## 8. Questions ouvertes
+
+- Purge : les `Room` terminées doivent-elles être supprimées avec les `Training` (comportement actuel) ?
+- Cible de déploiement (hébergeur, Docker, nombre de workers) pour trancher le scheduler et le stockage du limiteur.
