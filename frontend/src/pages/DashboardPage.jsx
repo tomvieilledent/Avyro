@@ -10,6 +10,7 @@ import IncomingPanel from '../components/dashboard/IncomingPanel.jsx'
 import ReportsPanel from '../components/dashboard/ReportsPanel.jsx'
 
 const ALL_TABS = ['catalog', 'mine', 'bookings', 'incoming', 'reports']
+const GUEST_TABS = ['catalog']
 const PANELS = {
   catalog: CatalogPanel,
   mine: MinePanel,
@@ -24,7 +25,7 @@ function DashboardChrome() {
   const [activeTab, setActiveTab] = useState('catalog')
   useRequireAuth({ guest: isGuest })
 
-  const tabs = isGuest ? ['catalog'] : ALL_TABS
+  const tabs = isGuest ? GUEST_TABS : ALL_TABS
   useEffect(() => {
     if (!tabs.includes(activeTab)) setActiveTab('catalog')
   }, [tabs, activeTab])

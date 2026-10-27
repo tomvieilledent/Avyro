@@ -26,6 +26,42 @@ export function clearSession() {
   localStorage.removeItem('avyro_user')
 }
 
+/**
+ * Révoque côté serveur la session (POST /auth/logout, access en Authorization,
+ * refresh dans le corps JSON). Un seul appel, échec silencieux ; à appeler avant clearSession().
+ */
+export function revokeSession() {
+  const access = getToken()
+  if (!access) return
+  const refresh = localStorage.getItem('avyro_refresh')
+  const send = (token) => {
+    const headers = { Authorization: `Bearer ${token}` }
+    const init = { method: 'POST', headers }
+    if (refresh) {
+      headers['Content-Type'] = 'application/json'
+      init.body = JSON.stringify({ refresh_token: refresh })
+    }
+    return fetch(`${API_BASE}/auth/logout`, init)
+  }
+  // Refresh/retry indépendants du localStorage (vidé juste après par clearSession)
+  const retry = async () => {
+    const res = await fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${refresh}` },
+    })
+    if (!res.ok) return
+    const data = await res.json().catch(() => null)
+    if (data?.access_token) await send(data.access_token)
+  }
+  try {
+    send(access)
+      .then((res) => (res.status === 401 && refresh ? retry() : undefined))
+      .catch(() => {})
+  } catch {
+    /* ignoré */
+  }
+}
+
 export function currentUser() {
   try {
     const raw = localStorage.getItem('avyro_user')

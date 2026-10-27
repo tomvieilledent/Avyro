@@ -13,13 +13,16 @@ export function AuthProvider({ children }) {
   }, [])
 
   const logout = useCallback(() => {
+    api.revokeSession()
     api.clearSession()
     setUser(null)
   }, [])
 
   const refreshUser = useCallback((data) => {
-    localStorage.setItem('avyro_user', JSON.stringify(data))
-    setUser(data)
+    const { access_token, refresh_token, ...profile } = data
+    api.setSession({ access_token, refresh_token })
+    localStorage.setItem('avyro_user', JSON.stringify(profile))
+    setUser(profile)
   }, [])
 
   const value = useMemo(
