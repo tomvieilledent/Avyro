@@ -2,17 +2,19 @@
 Routes Company : consultation et mise à jour de la structure de l'utilisateur.
 Préfixe : /api/companies
 """
-from datetime import timedelta
-
 from flask.views import MethodView
-from flask_jwt_extended import jwt_required, create_access_token
+from flask import current_app
+from flask_jwt_extended import jwt_required
 from flask_smorest import Blueprint, abort
+from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db
 from app.models import Company, User
 from app.schemas import UpdateCompanySchema, CompanySchema, InviteSchema, MessageSchema
 from app.services.mailer import send_email
 from app.utils.auth import current_user
+from app.utils.tokens import create_invite_token
 
 blp = Blueprint(
     "companies",
@@ -57,7 +59,11 @@ class MyCompanyView(MethodView):
         if "tags" in args:
             company.tags = args["tags"] or []
 
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            abort(409, message="Ce SIRET est déjà utilisé.")
         return company.to_dict()
 
 
@@ -76,24 +82,16 @@ class InviteView(MethodView):
             abort(403, message="Seul l'administrateur peut inviter des membres.")
 
         invite_email = args["email"]
-        if User.query.filter_by(email=invite_email).first():
+        if User.query.filter(func.lower(User.email) == invite_email).first():
             abort(409, message="Un compte existe déjà avec cet email.")
 
-        token = create_access_token(
-            identity=f"invite:{invite_email}",
-            expires_delta=timedelta(days=7),
-            additional_claims={
-                "invite": True,
-                "invite_email": invite_email,
-                "invite_role": args.get("role", "member"),
-                "company_id": user.company_id,
-            },
+        token = create_invite_token(
+            invite_email, args.get("role", "member"), user.company_id
         )
-        from flask import request
-        base = request.host_url.rstrip("/")
+        base = current_app.config["PUBLIC_URL"].rstrip("/")
         invite_url = f"{base}/invite?token={token}"
 
-        send_email(
+        sent = send_email(
             to=invite_email,
             subject=f"Invitation à rejoindre {user.company.name} sur Avyro",
             body=(
@@ -105,6 +103,8 @@ class InviteView(MethodView):
                 f"Si vous n'attendiez pas cette invitation, ignorez ce message."
             ),
         )
+        if not sent:
+            return {"message": "Invitation créée, mais l'email n'a pas pu être envoyé."}
         return {"message": "Invitation envoyée."}
 
 

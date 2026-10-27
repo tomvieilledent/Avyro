@@ -2,7 +2,7 @@
 Routes d'authentification : inscription, connexion, refresh token, profil.
 Préfixe : /api/auth
 """
-from datetime import timedelta
+import logging
 
 from flask.views import MethodView
 from flask_jwt_extended import (
@@ -10,12 +10,13 @@ from flask_jwt_extended import (
     create_refresh_token,
     jwt_required,
     get_jwt_identity,
-    decode_token,
 )
 from flask_smorest import Blueprint, abort
+from sqlalchemy import func, update
+from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db, limiter
-from app.models import User, Company
+from app.models import User, Company, Booking
 from app.schemas import (
     RegisterSchema,
     LoginSchema,
@@ -24,9 +25,14 @@ from app.schemas import (
     TokenResponseSchema,
     AccessTokenSchema,
     AcceptInviteSchema,
+    InviteInfoQuerySchema,
+    InviteInfoSchema,
     MessageSchema,
 )
-from app.utils.auth import current_user
+from app.utils.auth import current_user, db_get_user, _identity_to_id
+from app.utils.tokens import InvalidInviteToken, read_invite_token
+
+logger = logging.getLogger(__name__)
 
 blp = Blueprint(
     "auth",
@@ -46,6 +52,24 @@ def _build_token_response(user: User) -> dict:
         "refresh_token": create_refresh_token(identity=identity),
         "user": user.to_dict(),
     }
+
+
+def _email_taken(email: str, exclude_id: "int | None" = None) -> bool:
+    """Unicité insensible à la casse (couvre aussi d'éventuelles lignes legacy)."""
+    q = User.query.filter(func.lower(User.email) == email.lower())
+    if exclude_id is not None:
+        q = q.filter(User.id != exclude_id)
+    return q.first() is not None
+
+
+def _commit_or_conflict(message: str) -> None:
+    """Commit ; en cas de violation d'unicité (course) : rollback + 409."""
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        logger.warning("IntegrityError lors d'un commit de compte")
+        abort(409, message=message)
 
 
 # ── Vues ─────────────────────────────────────────────────────────────────────
@@ -69,15 +93,16 @@ class RegisterView(MethodView):
         Si `company_name` est absent ou vide, le nom de la Company vaut
         « Prénom Nom » de l'utilisateur.
         """
-        if User.query.filter_by(email=args["email"]).first():
+        if _email_taken(args["email"]):
             abort(409, message="Cet email est déjà utilisé.")
 
-        company_name = (args.get("company_name") or "").strip() or (
+        explicit_name = (args.get("company_name") or "").strip()
+        company_name = explicit_name or (
             f"{args['first_name']} {args['last_name']}".strip()
         )
         company = Company(
             name=company_name,
-            kind="pro" if args.get("company_name") else "private",
+            kind="pro" if explicit_name else "private",
         )
         if args.get("tags"):
             company.tags = args["tags"]
@@ -94,7 +119,7 @@ class RegisterView(MethodView):
         )
         user.set_password(args["password"])
         db.session.add(user)
-        db.session.commit()
+        _commit_or_conflict("Cet email est déjà utilisé.")
 
         return _build_token_response(user)
 
@@ -113,7 +138,9 @@ class LoginView(MethodView):
     @blp.alt_response(422, description="Données invalides.")
     def post(self, args: dict):
         """Authentifie l'utilisateur et retourne ses tokens JWT."""
-        user = User.query.filter_by(email=args["email"]).first()
+        user = User.query.filter(
+            func.lower(User.email) == args["email"].lower()
+        ).first()
         if not user or not user.check_password(args["password"]):
             # Message volontairement vague pour ne pas révéler l'existence du compte
             abort(401, message="Email ou mot de passe incorrect.")
@@ -127,9 +154,13 @@ class RefreshView(MethodView):
     decorators = [jwt_required(refresh=True)]
 
     @blp.response(200, AccessTokenSchema, description="Nouvel access token.")
+    @blp.alt_response(401, description="Compte inexistant ou token invalide.")
     def post(self):
         """Émet un nouvel access token (nécessite le refresh token en Bearer)."""
         identity = get_jwt_identity()
+        user_id = _identity_to_id(identity)
+        if user_id is None or db_get_user(user_id) is None:
+            abort(401, message="Session expirée, reconnectez-vous.")
         return {"access_token": create_access_token(identity=identity)}
 
 
@@ -157,7 +188,7 @@ class MeView(MethodView):
         user = current_user()
 
         if "email" in args and args["email"] != user.email:
-            if User.query.filter_by(email=args["email"]).first():
+            if _email_taken(args["email"], exclude_id=user.id):
                 abort(409, message="Cet email est déjà utilisé.")
             user.email = args["email"]
 
@@ -168,7 +199,7 @@ class MeView(MethodView):
         if "password" in args:
             user.set_password(args["password"])
 
-        db.session.commit()
+        _commit_or_conflict("Cet email est déjà utilisé.")
         return user.to_dict()
 
     @blp.response(200, MessageSchema, description="Compte supprimé.")
@@ -189,6 +220,12 @@ class MeView(MethodView):
                 User.role == "admin",
                 User.id != user.id,
             ).first()
+        )
+        # Anonymise le demandeur des réservations qui survivent à la suppression
+        db.session.execute(
+            update(Booking)
+            .where(Booking.requested_by_id == user.id)
+            .values(requested_by_id=None)
         )
         if is_last_admin:
             db.session.delete(company)  # cascade → supprime User aussi
@@ -218,40 +255,63 @@ class MeExportView(MethodView):
         return jsonify(data)
 
 
+@blp.route("/invite-info")
+class InviteInfoView(MethodView):
+    """Aperçu public d'une invitation (pré-remplissage du formulaire)."""
+
+    decorators = [limiter.limit("20 per minute")]
+
+    @blp.doc(security=[])
+    @blp.arguments(InviteInfoQuerySchema, location="query")
+    @blp.response(200, InviteInfoSchema)
+    @blp.alt_response(400, description="Invitation invalide, expirée ou déjà utilisée.")
+    def get(self, args: dict):
+        """Retourne email, structure et rôle d'une invitation valide."""
+        try:
+            claims = read_invite_token(args["token"])
+        except InvalidInviteToken:
+            abort(400, message="Lien d'invitation invalide ou expiré.")
+        email = claims["email"].strip().lower()
+        company = db.session.get(Company, claims["company_id"])
+        if company is None or _email_taken(email):
+            abort(400, message="Lien d'invitation invalide ou expiré.")
+        return {"email": email, "company_name": company.name, "role": claims["role"]}
+
+
 @blp.route("/accept-invite")
 class AcceptInviteView(MethodView):
     """Finalise la création de compte suite à une invitation."""
+
+    decorators = [limiter.limit("10 per minute")]
 
     @blp.doc(security=[])
     @blp.arguments(AcceptInviteSchema, location="json")
     @blp.response(201, TokenResponseSchema)
     def post(self, args: dict):
-        """Crée un compte membre via un token d'invitation."""
+        """Crée un compte membre via un token d'invitation (usage unique)."""
         try:
-            claims = decode_token(args["token"])
-        except Exception:
+            claims = read_invite_token(args["token"])
+        except InvalidInviteToken:
             abort(400, message="Lien d'invitation invalide ou expiré.")
 
-        if claims.get("invite") is not True:
-            abort(400, message="Token non valide pour une invitation.")
-
-        invite_email = claims.get("invite_email")
-        company_id = claims.get("company_id")
-        invite_role = claims.get("invite_role", "member")
-
-        if User.query.filter_by(email=invite_email).first():
+        invite_email = claims["email"].strip().lower()
+        # Usage unique : l'invitation est consommée dès que le compte existe
+        if _email_taken(invite_email):
             abort(409, message="Un compte existe déjà avec cet email.")
 
-        company = db.get_or_404(Company, company_id)
+        company = db.session.get(Company, claims["company_id"])
+        if company is None:
+            abort(400, message="Lien d'invitation invalide ou expiré.")
+
         user = User(
             email=invite_email,
             first_name=args["first_name"],
             last_name=args["last_name"],
             phone=args["phone"],
-            role=invite_role,
+            role=claims["role"],
             company_id=company.id,
         )
         user.set_password(args["password"])
         db.session.add(user)
-        db.session.commit()
+        _commit_or_conflict("Un compte existe déjà avec cet email.")
         return _build_token_response(user)

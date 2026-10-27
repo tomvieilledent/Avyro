@@ -18,6 +18,7 @@ from app.schemas import (
 )
 from app.utils.auth import current_user, current_user_optional
 from app.utils.geo import apply_geo_filter
+from app.utils.offers import confirmed_seats, lock_offer, normalize_dates
 
 blp = Blueprint(
     "rooms",
@@ -116,15 +117,39 @@ class RoomDetailView(MethodView):
 
     @blp.response(200, RoomSchema)
     def get(self, room_id: int):
-        return db.get_or_404(Room, room_id).to_dict()
+        """Détail d'une offre ; non visible si non `open` sauf pour son propriétaire."""
+        room = db.get_or_404(Room, room_id)
+        user = current_user()
+        if room.status != "open" and room.provider_id != user.company_id:
+            abort(404, message="Ressource introuvable.")
+        return room.to_dict()
 
     @blp.arguments(RoomUpdateSchema, location="json")
     @blp.response(200, RoomSchema)
     def patch(self, args: dict, room_id: int):
         """Met à jour une salle (provider uniquement)."""
-        room = db.get_or_404(Room, room_id)
+        room = lock_offer(Room, room_id)
+        if room is None:
+            abort(404, message="Ressource introuvable.")
         if room.provider_id != current_user().company_id:
             abort(403, message="Vous n'êtes pas le provider de cette salle.")
+
+        normalize_dates(args)
+        # Cohérence des dates avec l'objet existant
+        starts = args.get("starts_at", room.starts_at)
+        ends = args.get("ends_at", room.ends_at)
+        if ends <= starts:
+            abort(422, messages={"ends_at": ["ends_at doit être postérieur à starts_at."]})
+
+        # On ne peut pas descendre sous les places déjà confirmées
+        if "shared_seats" in args:
+            confirmed = confirmed_seats(room)
+            if args["shared_seats"] < confirmed:
+                abort(
+                    400,
+                    message=f"shared_seats ne peut pas être inférieur aux places confirmées ({confirmed}).",
+                )
+
         tags = args.pop("tags", None)
         for key, value in args.items():
             setattr(room, key, value)

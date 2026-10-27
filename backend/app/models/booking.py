@@ -13,6 +13,7 @@ class Booking(TimestampMixin, db.Model):
     Workflow de statut :
         pending   → confirmed   (validé par le provider)
         pending   → cancelled   (refusé par le provider OU annulé par le booker)
+    Les transitions depuis confirmed/cancelled sont interdites.
     """
 
     __tablename__ = "bookings"
@@ -33,8 +34,9 @@ class Booking(TimestampMixin, db.Model):
     company_id = db.Column(
         db.Integer, db.ForeignKey("companies.id"), nullable=False, index=True
     )
+    # NULL si le demandeur a supprimé son compte (RGPD : anonymisation)
     requested_by_id = db.Column(
-        db.Integer, db.ForeignKey("users.id"), nullable=False
+        db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
 
     training = db.relationship("Training", back_populates="bookings")

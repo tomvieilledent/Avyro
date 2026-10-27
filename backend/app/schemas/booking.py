@@ -50,7 +50,7 @@ class BookingSchema(Schema):
     training_starts_at = fields.Str(dump_only=True, allow_none=True)
     company_id = fields.Int(dump_only=True)
     company_name = fields.Str(dump_only=True, allow_none=True)
-    requested_by_id = fields.Int(dump_only=True)
+    requested_by_id = fields.Int(dump_only=True, allow_none=True)
     requested_by_name = fields.Str(dump_only=True, allow_none=True)
     note = fields.Str(dump_only=True, allow_none=True)
     created_at = fields.Str(dump_only=True)

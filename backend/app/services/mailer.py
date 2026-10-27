@@ -5,12 +5,15 @@ En production : envoie via SMTP (variables MAIL_* dans .env).
 En développement (MAIL_SERVER absent) : écrit les messages dans un fichier
 log local (DEV_OUTBOX) pour inspection sans serveur SMTP.
 """
+import logging
 import os
 import smtplib
 from datetime import datetime, timezone
 from email.message import EmailMessage
 
 from flask import current_app
+
+logger = logging.getLogger(__name__)
 
 # Chemin de l'outbox de développement — relatif au répertoire courant d'exécution
 # ou surchargeable via la variable d'env MAIL_DEV_OUTBOX
@@ -22,9 +25,28 @@ def send_email(
     to: "str | list[str]",
     subject: str,
     body: str,
-) -> None:
+) -> bool:
     """
     Envoie un email à un ou plusieurs destinataires.
+
+    Ne lève jamais : un échec d'envoi est journalisé (sans contenu du message)
+    et ne doit pas faire échouer la requête appelante. Retourne True si envoyé.
+    """
+    try:
+        _send_email(to, subject, body)
+        return True
+    except Exception:
+        logger.exception("Échec d'envoi d'email (sujet=%r)", subject)
+        return False
+
+
+def _send_email(
+    to: "str | list[str]",
+    subject: str,
+    body: str,
+) -> None:
+    """
+    Envoi effectif (peut lever).
 
     Args:
         to: Adresse email ou liste d'adresses.

@@ -10,7 +10,7 @@ import os
 
 from flask import Flask, jsonify
 
-from .config import config_by_name
+from .config import config_by_name, validate_production_config
 from .extensions import db, migrate, jwt, cors, smorest, limiter
 
 
@@ -25,6 +25,9 @@ def create_app(config_name: str | None = None) -> Flask:
     config_name = config_name or os.getenv("FLASK_ENV", "development")
     app = Flask(__name__)
     app.config.from_object(config_by_name[config_name])
+    app.config["APP_ENV"] = config_name
+    if config_name == "production":
+        validate_production_config(app.config)
 
     _init_extensions(app)
     _register_blueprints(app)
@@ -49,7 +52,7 @@ def _init_extensions(app: Flask) -> None:
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
-    cors.init_app(app, resources={r"/api/*": {"origins": "*"}})
+    cors.init_app(app, resources={r"/api/*": {"origins": app.config["CORS_ORIGINS"]}})
     limiter.init_app(app)
 
     # flask-smorest : OpenAPI 3.0 + Swagger UI
@@ -67,17 +70,19 @@ def _register_blueprints(app: Flask) -> None:
     from .api.trainings import blp as trainings_blp
     from .api.rooms import blp as rooms_blp
     from .api.bookings import blp as bookings_blp
+    from .api.geocode import blp as geocode_blp
 
     smorest.register_blueprint(auth_blp)
     smorest.register_blueprint(companies_blp)
     smorest.register_blueprint(trainings_blp)
     smorest.register_blueprint(rooms_blp)
     smorest.register_blueprint(bookings_blp)
+    smorest.register_blueprint(geocode_blp)
 
     # Health check (hors Swagger, appelé par les load balancers)
     @app.get("/api/health")
     def health():
-        return jsonify(status="ok", env=app.config.get("ENV", "unknown"))
+        return jsonify(status="ok", env=app.config.get("APP_ENV", "unknown"))
 
 
 def _register_frontend(app: Flask, frontend_dir: str) -> None:
@@ -156,6 +161,12 @@ def _register_error_handlers(app: Flask) -> None:
     @app.errorhandler(404)
     def not_found(e):
         return jsonify(error="not_found", message="Ressource introuvable."), 404
+
+    @app.errorhandler(502)
+    def bad_gateway(e):
+        data = getattr(e, "data", {})
+        msg = data.get("message") or "Service amont indisponible."
+        return jsonify(error="bad_gateway", message=msg), 502
 
     @app.errorhandler(409)
     def conflict(e):

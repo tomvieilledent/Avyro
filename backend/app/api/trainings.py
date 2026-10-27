@@ -18,6 +18,7 @@ from app.schemas import (
 )
 from app.utils.auth import current_user, current_user_optional
 from app.utils.geo import apply_geo_filter
+from app.utils.offers import confirmed_seats, lock_offer, normalize_dates
 
 blp = Blueprint(
     "trainings",
@@ -116,15 +117,39 @@ class TrainingDetailView(MethodView):
 
     @blp.response(200, TrainingSchema)
     def get(self, training_id: int):
-        return db.get_or_404(Training, training_id).to_dict()
+        """Détail d'une offre ; non visible si non `open` sauf pour son propriétaire."""
+        training = db.get_or_404(Training, training_id)
+        user = current_user()
+        if training.status != "open" and training.provider_id != user.company_id:
+            abort(404, message="Ressource introuvable.")
+        return training.to_dict()
 
     @blp.arguments(TrainingUpdateSchema, location="json")
     @blp.response(200, TrainingSchema)
     def patch(self, args: dict, training_id: int):
         """Met à jour une formation (provider uniquement)."""
-        training = db.get_or_404(Training, training_id)
+        training = lock_offer(Training, training_id)
+        if training is None:
+            abort(404, message="Ressource introuvable.")
         if training.provider_id != current_user().company_id:
             abort(403, message="Vous n'êtes pas le provider de cette formation.")
+
+        normalize_dates(args)
+        # Cohérence des dates avec l'objet existant
+        starts = args.get("starts_at", training.starts_at)
+        ends = args.get("ends_at", training.ends_at)
+        if ends <= starts:
+            abort(422, messages={"ends_at": ["ends_at doit être postérieur à starts_at."]})
+
+        # On ne peut pas descendre sous les places déjà confirmées
+        if "shared_seats" in args:
+            confirmed = confirmed_seats(training)
+            if args["shared_seats"] < confirmed:
+                abort(
+                    400,
+                    message=f"shared_seats ne peut pas être inférieur aux places confirmées ({confirmed}).",
+                )
+
         tags = args.pop("tags", None)
         for key, value in args.items():
             setattr(training, key, value)

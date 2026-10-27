@@ -7,6 +7,21 @@ production (PostgreSQL). Sélection via la variable d'env FLASK_ENV.
 import os
 from datetime import timedelta
 
+_MIN_SECRET_LENGTH = 32
+_WEAK_SECRET_PREFIXES = ("dev-", "change-me", "changeme")
+
+
+def _parse_origins(raw: str) -> "str | list[str]":
+    """'*' ou liste d'origines séparées par des virgules."""
+    raw = (raw or "").strip()
+    if raw == "*":
+        return "*"
+    return [o.strip() for o in raw.split(",") if o.strip()]
+
+
+class ConfigError(RuntimeError):
+    """Configuration invalide (levée au démarrage)."""
+
 
 class Config:
     # ── Sécurité ──────────────────────────────────────────────────────────────
@@ -18,6 +33,13 @@ class Config:
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(
         days=int(os.getenv("JWT_REFRESH_DAYS", "30"))
     )
+
+    # URL publique du frontend (liens des emails d'invitation)
+    PUBLIC_URL = os.getenv("PUBLIC_URL", "http://localhost:5173")
+    # Origines CORS autorisées (défaut permissif en dev/test uniquement)
+    CORS_ORIGINS = _parse_origins(os.getenv("CORS_ORIGINS", "*"))
+    # Durée de validité des invitations (secondes) : 7 jours
+    INVITE_MAX_AGE = 7 * 24 * 3600
 
     # ── Base de données ───────────────────────────────────────────────────────
     SQLALCHEMY_DATABASE_URI = os.getenv(
@@ -92,6 +114,34 @@ class TestingConfig(Config):
 
 class ProductionConfig(Config):
     DEBUG = False
+    SECRET_KEY = os.getenv("SECRET_KEY", "")
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "")
+    PUBLIC_URL = os.getenv("PUBLIC_URL", "")
+    # Pas de défaut permissif en production
+    CORS_ORIGINS = _parse_origins(os.getenv("CORS_ORIGINS", ""))
+
+
+def _check_secret(name: str, value: "str | None") -> None:
+    if not value:
+        raise ConfigError(f"{name} est obligatoire en production.")
+    if value.lower().startswith(_WEAK_SECRET_PREFIXES):
+        raise ConfigError(f"{name} utilise une valeur par défaut connue.")
+    if len(value) < _MIN_SECRET_LENGTH:
+        raise ConfigError(
+            f"{name} doit contenir au moins {_MIN_SECRET_LENGTH} caractères."
+        )
+
+
+def validate_production_config(cfg) -> None:
+    """Lève ConfigError si la config de production est dangereuse."""
+    _check_secret("SECRET_KEY", cfg.get("SECRET_KEY"))
+    _check_secret("JWT_SECRET_KEY", cfg.get("JWT_SECRET_KEY"))
+    if cfg.get("SECRET_KEY") == cfg.get("JWT_SECRET_KEY"):
+        raise ConfigError("SECRET_KEY et JWT_SECRET_KEY doivent être distincts.")
+    if not cfg.get("PUBLIC_URL"):
+        raise ConfigError("PUBLIC_URL est obligatoire en production.")
+    if not cfg.get("CORS_ORIGINS"):
+        raise ConfigError("CORS_ORIGINS est obligatoire en production.")
 
 
 config_by_name: dict = {

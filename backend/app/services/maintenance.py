@@ -57,7 +57,8 @@ def _build_reminder_body(training: Training) -> str:
         for a in attendees:
             lines.append(
                 f"  • {a['company_name']} : {a['seats']} place(s)"
-                f" — {a['contact_name']} ({a['contact_email']})"
+                f" — {a['contact_name']}"
+                + (f" ({a['contact_email']})" if a["contact_email"] else "")
             )
     else:
         lines.append("  Aucun inscrit confirmé pour le moment.")

@@ -1,6 +1,10 @@
 """Schemas marshmallow pour l'authentification et la gestion de profil."""
 from marshmallow import Schema, fields, validate
 
+from .fields import NormalizedEmail, StrippedStr
+
+PASSWORD_LEN = validate.Length(min=8, max=128)
+
 
 # ── Schémas d'entrée ─────────────────────────────────────────────────────────
 
@@ -17,7 +21,7 @@ class RegisterSchema(Schema):
         validate=validate.Length(min=1, max=120),
         metadata={"example": "Martin"},
     )
-    email = fields.Email(required=True, metadata={"example": "alice@example.com"})
+    email = NormalizedEmail(required=True, metadata={"example": "alice@example.com"})
     phone = fields.Str(
         required=True,
         validate=validate.Length(min=6, max=30),
@@ -25,23 +29,29 @@ class RegisterSchema(Schema):
     )
     password = fields.Str(
         required=True,
-        validate=validate.Length(min=8),
+        validate=PASSWORD_LEN,
         load_only=True,
         metadata={"example": "motdepasse123"},
     )
     # Si absent, le nom de la Company prend la valeur "Prénom Nom"
-    company_name = fields.Str(
+    company_name = StrippedStr(
         load_default=None,
         allow_none=True,
+        validate=validate.Length(max=255),
         metadata={"example": "Acme Corp"},
     )
-    tags = fields.List(fields.Str(), load_default=None, allow_none=True)
+    tags = fields.List(
+        StrippedStr(validate=validate.Length(min=1, max=50)),
+        load_default=None,
+        allow_none=True,
+        validate=validate.Length(max=20),
+    )
 
 
 class LoginSchema(Schema):
     """Corps de la requête POST /auth/login."""
 
-    email = fields.Email(required=True, metadata={"example": "alice@example.com"})
+    email = NormalizedEmail(required=True, metadata={"example": "alice@example.com"})
     password = fields.Str(
         required=True,
         load_only=True,
@@ -55,8 +65,8 @@ class UpdateProfileSchema(Schema):
     first_name = fields.Str(validate=validate.Length(min=1, max=120))
     last_name = fields.Str(validate=validate.Length(min=1, max=120))
     phone = fields.Str(validate=validate.Length(min=6, max=30))
-    email = fields.Email()
-    password = fields.Str(validate=validate.Length(min=8), load_only=True)
+    email = NormalizedEmail()
+    password = fields.Str(validate=PASSWORD_LEN, load_only=True)
 
 
 # ── Schémas de sortie ────────────────────────────────────────────────────────
@@ -92,8 +102,22 @@ class AccessTokenSchema(Schema):
 class InviteSchema(Schema):
     """Corps de la requête POST /companies/me/invite."""
 
-    email = fields.Email(required=True)
+    email = NormalizedEmail(required=True)
     role = fields.Str(load_default="member", validate=validate.OneOf(["member", "admin"]))
+
+
+class InviteInfoQuerySchema(Schema):
+    """Query de GET /auth/invite-info."""
+
+    token = fields.Str(required=True, validate=validate.Length(min=1, max=2000))
+
+
+class InviteInfoSchema(Schema):
+    """Réponse de GET /auth/invite-info."""
+
+    email = fields.Str()
+    company_name = fields.Str()
+    role = fields.Str()
 
 
 class AcceptInviteSchema(Schema):
@@ -103,4 +127,4 @@ class AcceptInviteSchema(Schema):
     first_name = fields.Str(required=True, validate=validate.Length(min=1, max=120))
     last_name = fields.Str(required=True, validate=validate.Length(min=1, max=120))
     phone = fields.Str(required=True, validate=validate.Length(min=6, max=30))
-    password = fields.Str(required=True, validate=validate.Length(min=8), load_only=True)
+    password = fields.Str(required=True, validate=PASSWORD_LEN, load_only=True)

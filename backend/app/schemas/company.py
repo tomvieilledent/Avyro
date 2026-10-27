@@ -1,17 +1,25 @@
 """Schemas marshmallow pour les Company."""
 from marshmallow import Schema, fields, validate
 
+from .fields import NormalizedEmail, StrippedStr
+
 
 class UpdateCompanySchema(Schema):
     """Corps de la requête PATCH /companies/me (tous les champs optionnels)."""
 
-    name = fields.Str(validate=validate.Length(min=1, max=255))
+    name = StrippedStr(validate=validate.Length(min=1, max=255))
     kind = fields.Str(validate=validate.OneOf(["pro", "private"]))
     siret = fields.Str(
         validate=validate.Length(max=20), allow_none=True, load_default=None
     )
-    contact_email = fields.Email(allow_none=True, load_default=None)
-    tags = fields.List(fields.Str(), allow_none=True)
+    contact_email = NormalizedEmail(
+        allow_none=True, load_default=None, validate=validate.Length(max=255)
+    )
+    tags = fields.List(
+        StrippedStr(validate=validate.Length(min=1, max=50)),
+        allow_none=True,
+        validate=validate.Length(max=20),
+    )
 
 
 class CompanySchema(Schema):

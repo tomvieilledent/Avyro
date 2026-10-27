@@ -88,8 +88,10 @@ class Room(TimestampMixin, db.Model):
             {
                 "company_name": b.company.name,
                 "seats": b.seats,
-                "contact_name": b.requested_by.full_name,
-                "contact_email": b.requested_by.email,
+                "contact_name": (
+                    b.requested_by.full_name if b.requested_by else "Utilisateur supprimé"
+                ),
+                "contact_email": b.requested_by.email if b.requested_by else None,
             }
             for b in self.confirmed_bookings
         ]

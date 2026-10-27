@@ -2,6 +2,8 @@
 Routes Booking : réservations de places sur Training ou Room.
 Préfixe : /api/bookings
 """
+from datetime import datetime, timezone
+
 from flask.views import MethodView
 from flask_jwt_extended import jwt_required
 from flask_smorest import Blueprint, abort
@@ -18,6 +20,7 @@ from app.schemas import (
 )
 from app.services.mailer import send_email
 from app.utils.auth import current_user
+from app.utils.offers import available_seats, lock_offer
 
 
 def _fmt(dt) -> str:
@@ -29,6 +32,10 @@ def _provider_email(item) -> "str | None":
         return item.provider.contact_email
     admin = next((u for u in item.provider.users if u.role == "admin"), None)
     return admin.email if admin else None
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
 
 blp = Blueprint(
     "bookings",
@@ -71,14 +78,14 @@ class IncomingBookingsView(MethodView):
         if args["kind"] == "room":
             bookings = (
                 Booking.query.join(Room, Booking.room_id == Room.id)
-                .filter(Room.provider_id == user.company_id)
+                .filter(Room.provider_id == user.company_id, Booking.status != "cancelled")
                 .order_by(Booking.created_at.desc())
                 .all()
             )
         else:
             bookings = (
                 Booking.query.join(Training, Booking.training_id == Training.id)
-                .filter(Training.provider_id == user.company_id)
+                .filter(Training.provider_id == user.company_id, Booking.status != "cancelled")
                 .order_by(Booking.created_at.desc())
                 .all()
             )
@@ -124,10 +131,13 @@ class BookingListView(MethodView):
         training_id = args.get("training_id")
         room_id = args.get("room_id")
 
-        if training_id:
-            item = db.get_or_404(Training, training_id)
+        # Verrou de l'offre : sérialise les créations/confirmations concurrentes
+        if training_id is not None:
+            item = lock_offer(Training, training_id)
         else:
-            item = db.get_or_404(Room, room_id)
+            item = lock_offer(Room, room_id)
+        if item is None:
+            abort(404, message="Offre introuvable.")
 
         if item.provider_id == user.company_id:
             abort(400, message="Vous ne pouvez pas réserver votre propre offre.")
@@ -135,8 +145,21 @@ class BookingListView(MethodView):
         if item.status != "open":
             abort(400, message="Cette offre n'accepte plus de réservations.")
 
-        if args["seats"] > item.available_seats:
-            abort(400, message=f"Seulement {item.available_seats} place(s) disponible(s).")
+        if item.starts_at <= _utcnow():
+            abort(400, message="Cette offre est déjà passée.")
+
+        duplicate = Booking.query.filter(
+            Booking.company_id == user.company_id,
+            Booking.training_id == training_id,
+            Booking.room_id == room_id,
+            Booking.status.in_(("pending", "confirmed")),
+        ).first()
+        if duplicate:
+            abort(409, message="Votre structure a déjà une réservation en cours pour cette offre.")
+
+        free = available_seats(item)
+        if args["seats"] > free:
+            abort(400, message=f"Seulement {free} place(s) disponible(s).")
 
         booking = Booking(
             training_id=training_id,
@@ -181,19 +204,35 @@ class BookingDetailView(MethodView):
         """Le provider confirme ou refuse une demande."""
         booking = db.get_or_404(Booking, booking_id)
         user = current_user()
-        item = booking._item
+
+        # Verrou de l'offre avant de contrôler le statut et les places
+        if booking.training_id is not None:
+            item = lock_offer(Training, booking.training_id)
+        else:
+            item = lock_offer(Room, booking.room_id)
+        if item is None:
+            abort(404, message="Offre introuvable.")
 
         if item.provider_id != user.company_id:
             abort(403, message="Vous n'êtes pas le provider de cette offre.")
 
+        # Relit le statut sous verrou (une autre requête a pu le modifier)
+        db.session.refresh(booking)
+        if booking.status != "pending":
+            abort(400, message="Seule une demande en attente peut être confirmée ou refusée.")
+
         if args["status"] == "confirmed":
-            if booking.seats > item.available_seats:
-                abort(400, message=f"Plus assez de places : {item.available_seats} disponible(s).")
+            free = available_seats(item)
+            if booking.seats > free:
+                abort(400, message=f"Plus assez de places : {free} disponible(s).")
 
         booking.status = args["status"]
         db.session.commit()
 
-        requester_email = booking.requested_by.email
+        requester = booking.requested_by
+        if requester is None:  # Demandeur anonymisé (compte supprimé)
+            return booking.to_dict()
+        requester_email = requester.email
         if args["status"] == "confirmed":
             send_email(
                 to=requester_email,
@@ -226,23 +265,28 @@ class BookingDetailView(MethodView):
 
     @blp.response(200, MessageSchema)
     def delete(self, booking_id: int):
-        """Le booker annule sa demande (pending uniquement)."""
+        """Le booker annule sa demande (pending uniquement) : statut `cancelled`."""
         booking = db.get_or_404(Booking, booking_id)
         user = current_user()
 
         if booking.company_id != user.company_id:
             abort(403, message="Cette réservation n'appartient pas à votre Company.")
 
+        # Même verrou que PATCH : évite confirmation et annulation simultanées
+        if booking.training_id is not None:
+            item = lock_offer(Training, booking.training_id)
+        else:
+            item = lock_offer(Room, booking.room_id)
+        db.session.refresh(booking)
         if booking.status != "pending":
-            abort(400, message="Impossible d'annuler une réservation déjà confirmée.")
+            abort(400, message="Seule une demande en attente peut être annulée.")
 
-        item = booking._item
         provider_addr = _provider_email(item)
         booker_name = booking.company.name
         item_title = item.title
         item_starts = item.starts_at
 
-        db.session.delete(booking)
+        booking.status = "cancelled"
         db.session.commit()
 
         if provider_addr:
