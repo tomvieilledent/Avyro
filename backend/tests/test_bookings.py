@@ -138,6 +138,13 @@ def test_list_incoming_bookings(client):
     assert len(res.get_json()) == 1
 
 
+def test_incoming_excludes_cancelled(client):
+    prov, book, tid = _setup_training(client)
+    b = create_booking(client, book, training_id=tid, seats=1)
+    client.patch(f"/api/bookings/{b['id']}", headers=prov, json={"status": "cancelled"})
+    assert client.get("/api/bookings/incoming", headers=prov).get_json() == []
+
+
 def test_list_bookings_kind_training(client):
     prov = auth_headers_for(client, "kprov@x.com",
                             company_name="KProv", with_siret=True)
@@ -320,11 +327,9 @@ def test_available_seats_decreases_after_confirmation(client):
 
 
 def test_available_seats_restored_after_cancel(client):
+    """Une demande pending refusée ne consomme jamais de place."""
     prov, book, tid = _setup_training(client)
     b = create_booking(client, book, training_id=tid, seats=2)
-    client.patch(
-        f"/api/bookings/{b['id']}", headers=prov, json={"status": "confirmed"}
-    )
     client.patch(
         f"/api/bookings/{b['id']}", headers=prov, json={"status": "cancelled"}
     )

@@ -4,6 +4,8 @@ Fixtures pytest partagées pour tous les tests Avyro.
 Chaque test démarre avec une base de données vide (SQLite in-memory) et
 des clients HTTP frais — aucun état n'est partagé entre les tests.
 """
+from datetime import datetime, timedelta
+
 import pytest
 
 from app import create_app
@@ -50,6 +52,12 @@ def register_and_login(client, email: str, password: str = "password123",
     res = client.post("/api/auth/register", json=payload)
     assert res.status_code == 201, f"Register failed: {res.get_json()}"
     return res.get_json()
+
+
+def future_dt(days: int = 30, hour: int = 9) -> str:
+    """Date ISO dans le futur (les réservations sur offres passées sont refusées)."""
+    d = datetime.utcnow().replace(hour=hour, minute=0, second=0, microsecond=0)
+    return (d + timedelta(days=days)).isoformat()
 
 
 _siret_counter = 0
@@ -106,8 +114,8 @@ def create_training(client, headers: dict, **overrides) -> dict:
     payload = {
         "title": "Formation test",
         "contact_phone": "0600000000",
-        "starts_at": "2026-09-01T09:00:00",
-        "ends_at": "2026-09-01T17:00:00",
+        "starts_at": future_dt(30, 9),
+        "ends_at": future_dt(30, 17),
         "shared_seats": 5,
         "price_per_seat": 100.0,
         **overrides,
@@ -122,8 +130,8 @@ def create_room(client, headers: dict, **overrides) -> dict:
     payload = {
         "title": "Salle test",
         "contact_phone": "0600000000",
-        "starts_at": "2026-09-01T09:00:00",
-        "ends_at": "2026-09-01T17:00:00",
+        "starts_at": future_dt(30, 9),
+        "ends_at": future_dt(30, 17),
         "shared_seats": 4,
         "price_per_seat": 50.0,
         **overrides,

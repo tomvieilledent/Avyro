@@ -312,17 +312,8 @@ def test_accept_invite_success(client, app):
 
     # Génère un token d'invitation directement (sans email SMTP)
     with app.app_context():
-        from datetime import timedelta
-        token = create_access_token(
-            identity="invite:invited@x.com",
-            expires_delta=timedelta(days=7),
-            additional_claims={
-                "invite": True,
-                "invite_email": "invited@x.com",
-                "invite_role": "member",
-                "company_id": company_id,
-            },
-        )
+        from app.utils.tokens import create_invite_token
+        token = create_invite_token("invited@x.com", "member", company_id)
 
     res = client.post(
         "/api/auth/accept-invite",
@@ -361,17 +352,8 @@ def test_accept_invite_duplicate_email_returns_409(client, app):
     company_id = data["user"]["company_id"]
 
     with app.app_context():
-        from datetime import timedelta
-        token = create_access_token(
-            identity="invite:taken_inv@x.com",
-            expires_delta=timedelta(days=7),
-            additional_claims={
-                "invite": True,
-                "invite_email": "taken_inv@x.com",
-                "invite_role": "member",
-                "company_id": company_id,
-            },
-        )
+        from app.utils.tokens import create_invite_token
+        token = create_invite_token("taken_inv@x.com", "member", company_id)
 
     res = client.post(
         "/api/auth/accept-invite",
