@@ -103,7 +103,8 @@ def _dev_outbox(
         with open(DEV_OUTBOX, "a", encoding="utf-8") as fh:
             fh.write(entry)
     except OSError:
-        pass  # Pas critique si le fichier n'est pas accessible
+        # Non bloquant (dev uniquement) mais signalé
+        logger.warning("Dev outbox inaccessible (%s)", DEV_OUTBOX, exc_info=True)
 
     try:
         current_app.logger.info(
